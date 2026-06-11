@@ -1,54 +1,75 @@
 {% extends "base.html" %}
-{% block title %}YouTube Transcript — Social Spark Studio{% endblock %}
+{% block title %}Transcript — Social Spark Studio{% endblock %}
 
 {% block content %}
 <div class="mx-auto max-w-3xl space-y-8">
 
   <header>
     <span class="inline-flex items-center gap-1.5 rounded-full border border-primary-30 bg-primary-soft px-3 py-1 text-xs font-semibold text-accent-foreground">
-      <i data-lucide="youtube" class="h-3 w-3"></i> YouTube Transcript
+      <i data-lucide="rss" class="h-3 w-3"></i> Transcript
     </span>
-    <h1 class="mt-3 text-3xl font-bold text-foreground sm:text-4xl">YouTube Transcript</h1>
+    <h1 class="mt-3 text-3xl font-bold text-foreground sm:text-4xl">Import your episode</h1>
     <p class="mt-2 text-muted-foreground">The source transcript your moments and posts are built from.</p>
   </header>
 
-  <!-- ── Fetch transcript action card ─────────────────────── -->
+  <!-- ── Main path: Import from RSS Feed ─────────────────────── -->
   <section class="card p-6">
-    <h2 class="text-base font-semibold text-foreground mb-1">
-      {% if transcript %}Re-fetch transcript{% else %}Fetch YouTube transcript{% endif %}
-    </h2>
-    <p class="text-sm text-muted-foreground mb-4">
-      Enter a YouTube URL to fetch the transcript for this campaign.
-      MessageDNA and Campaign Brief must exist first.
+    <h2 class="text-base font-semibold text-foreground mb-1">Import from RSS Feed</h2>
+    <p class="text-sm text-muted-foreground mb-1">
+      Choose an audio episode from your RSS feed. Social Spark Studio is designed
+      for 5–20 minute founder videos, lives, or podcast-style episodes.
     </p>
+    <p class="text-xs text-muted-foreground mb-4">
+      Best for lives, recurring shows, and YouTube channel content.
+      Paste your RSS feed, choose an audio episode, and Social Spark Studio will transcribe it.
+    </p>
+
     <div class="flex flex-col sm:flex-row gap-3">
       <input
-        id="yt-url"
+        id="rss-url"
         type="url"
-        value="{{ brief_url }}"
-        placeholder="https://www.youtube.com/watch?v=…"
+        placeholder="https://feeds.example.com/your-show.rss"
         class="flex-1 rounded-xl border border-border bg-background px-4 py-2.5 text-sm outline-none placeholder:text-muted-foreground text-foreground focus:ring-2 focus:ring-primary"
       />
       <button
         type="button"
-        id="yt-btn"
-        onclick="doFetchTranscript()"
+        id="rss-btn"
+        onclick="doLoadFeed()"
         class="btn-primary whitespace-nowrap"
       >
-        <i data-lucide="download" class="h-4 w-4"></i>
-        <span>Generate Transcript</span>
+        <i data-lucide="rss" class="h-4 w-4"></i>
+        <span>Load Episodes</span>
       </button>
     </div>
-    <div id="yt-status" class="hidden mt-3 rounded-xl border border-border bg-secondary px-4 py-3 text-sm"></div>
+    <div id="rss-status" class="hidden mt-3 rounded-xl border border-border bg-secondary px-4 py-3 text-sm"></div>
+
+    <!-- Episode list (filled by JS) -->
+    <div id="rss-episodes" class="hidden mt-4 space-y-2"></div>
+    <div id="transcribe-status" class="hidden mt-3 rounded-xl border border-border bg-secondary px-4 py-3 text-sm"></div>
+  </section>
+
+  <!-- ── Where do I find my RSS feed? ─────────────────────────── -->
+  <section class="rounded-2xl border border-primary-30 bg-primary-soft p-5">
+    <p class="text-xs font-bold uppercase tracking-wide text-accent-foreground mb-2">
+      Where do I find my RSS feed?
+    </p>
+    <ul class="space-y-1.5 text-sm text-foreground list-disc pl-5">
+      <li>Go to the platform where your show/audio episodes are published.</li>
+      <li>Look for a link called <strong>RSS Feed</strong>, <strong>Podcast RSS</strong>, <strong>Distribution Feed</strong>, or <strong>Copy RSS Link</strong>.</li>
+      <li>Paste the RSS feed URL here.</li>
+      <li>A YouTube video URL is <strong>not</strong> the same as an RSS feed.</li>
+    </ul>
   </section>
 
   {% if transcript %}
+  <!-- ── Current transcript status ─────────────────────────────── -->
   <div class="card p-6 space-y-4">
+    <h2 class="text-base font-semibold text-foreground">Current transcript</h2>
     {% if transcript.video_id %}
     <div class="flex items-center gap-3 rounded-xl border border-border bg-secondary p-4">
-      <i data-lucide="youtube" class="h-5 w-5 text-accent-foreground shrink-0"></i>
+      <i data-lucide="file-audio" class="h-5 w-5 text-accent-foreground shrink-0"></i>
       <div>
-        <p class="text-sm font-medium text-foreground">Video ID: <code class="text-accent-foreground">{{ transcript.video_id }}</code></p>
+        <p class="text-sm font-medium text-foreground">Source ID: <code class="text-accent-foreground">{{ transcript.video_id }}</code></p>
         {% if transcript.video_url %}
         <a href="{{ transcript.video_url }}" target="_blank" rel="noopener" class="text-xs text-muted-foreground hover:text-accent-foreground transition-colors">
           {{ transcript.video_url }}
@@ -59,22 +80,24 @@
     {% endif %}
 
     <dl class="grid gap-3 sm:grid-cols-3">
-      {% if transcript.word_count %}
+      {% set words = transcript.word_count or transcript.total_words %}
+      {% if words %}
       <div class="rounded-xl bg-secondary p-4 text-center">
         <dt class="text-11 font-bold uppercase tracking-wide text-muted-foreground">Words</dt>
-        <dd class="mt-1 text-2xl font-bold text-foreground">{{ transcript.word_count }}</dd>
+        <dd class="mt-1 text-2xl font-bold text-foreground">{{ words }}</dd>
       </div>
       {% endif %}
       {% if transcript.duration_seconds %}
       <div class="rounded-xl bg-secondary p-4 text-center">
         <dt class="text-11 font-bold uppercase tracking-wide text-muted-foreground">Duration</dt>
-        <dd class="mt-1 text-2xl font-bold text-foreground">{{ (transcript.duration_seconds // 60) }}m {{ (transcript.duration_seconds % 60) }}s</dd>
+        <dd class="mt-1 text-2xl font-bold text-foreground">{{ (transcript.duration_seconds // 60) | int }}m {{ (transcript.duration_seconds % 60) | int }}s</dd>
       </div>
       {% endif %}
-      {% if transcript.segment_count %}
+      {% set segs = transcript.segment_count or transcript.total_segments %}
+      {% if segs %}
       <div class="rounded-xl bg-secondary p-4 text-center">
         <dt class="text-11 font-bold uppercase tracking-wide text-muted-foreground">Segments</dt>
-        <dd class="mt-1 text-2xl font-bold text-foreground">{{ transcript.segment_count }}</dd>
+        <dd class="mt-1 text-2xl font-bold text-foreground">{{ segs }}</dd>
       </div>
       {% endif %}
     </dl>
@@ -86,18 +109,39 @@
     </a>
     <a href="/dashboard" class="btn-secondary">Dashboard</a>
   </div>
-
-  {% else %}
-  <div class="card p-10 text-center">
-    <div class="flex h-16 w-16 items-center justify-center rounded-full bg-primary-soft text-accent-foreground mx-auto">
-      <i data-lucide="youtube" class="h-8 w-8"></i>
-    </div>
-    <h2 class="mt-4 text-lg font-semibold text-foreground">No transcript yet</h2>
-    <p class="mt-2 text-sm text-muted-foreground max-w-sm mx-auto">
-      Run <code class="text-accent-foreground">python run_transcript.py</code> with a YouTube URL to fetch and process the transcript.
-    </p>
-  </div>
   {% endif %}
+
+  <!-- ── Manual transcript fallback ────────────────────────────── -->
+  <section class="card p-6">
+    <h2 class="text-base font-semibold text-foreground mb-1">Paste Transcript Manually</h2>
+    <p class="text-sm text-muted-foreground mb-4">
+      Already have a transcript? Paste it here and continue straight to Moments.
+    </p>
+    <textarea
+      id="manual-text"
+      rows="6"
+      placeholder="Paste your full transcript text here (at least 300 words)…"
+      class="w-full rounded-xl border border-border bg-background px-4 py-2.5 text-sm outline-none placeholder:text-muted-foreground text-foreground focus:ring-2 focus:ring-primary"
+    ></textarea>
+    <div class="mt-3 flex flex-col sm:flex-row gap-3">
+      <input
+        id="manual-source"
+        type="url"
+        placeholder="Source link (optional — episode or video URL)"
+        class="flex-1 rounded-xl border border-border bg-background px-4 py-2.5 text-sm outline-none placeholder:text-muted-foreground text-foreground focus:ring-2 focus:ring-primary"
+      />
+      <button
+        type="button"
+        id="manual-btn"
+        onclick="doManualTranscript()"
+        class="btn-secondary whitespace-nowrap"
+      >
+        <i data-lucide="clipboard-paste" class="h-4 w-4"></i>
+        <span>Save Transcript</span>
+      </button>
+    </div>
+    <div id="manual-status" class="hidden mt-3 rounded-xl border border-border bg-secondary px-4 py-3 text-sm"></div>
+  </section>
 
 </div>
 {% endblock %}
@@ -107,43 +151,174 @@
 <script>
   lucide.createIcons();
 
-  async function doFetchTranscript() {
-    const url = document.getElementById('yt-url').value.trim();
+  // ── Load RSS feed episodes ─────────────────────────────────────────
+
+  async function doLoadFeed() {
+    const url = document.getElementById('rss-url').value.trim();
+    pipeClear('rss-status');
+    pipeClear('transcribe-status');
+    pipeHide('rss-episodes');
+
     if (!url) {
-      pipeStatus('yt-status', pipeErrorHtml('Please enter a YouTube URL.'));
+      pipeStatus('rss-status', pipeErrorHtml('Please enter an RSS feed URL.'));
+      return;
+    }
+    // Individual YouTube video URLs are not feeds
+    if (/(?:youtube\.com\/watch\?|youtu\.be\/|youtube\.com\/shorts\/)/.test(url)) {
+      pipeStatus('rss-status', pipeErrorHtml('Please paste your RSS feed link, not an individual YouTube video URL.'));
       return;
     }
 
-    pipeBtn('yt-btn', true, 'Fetching…');
-    pipeStatus('yt-status', pipeRunningHtml('Fetching transcript from YouTube'));
-    console.log('[youtube] POST /api/run/transcript →', url);
+    pipeBtn('rss-btn', true, 'Loading…');
+    pipeStatus('rss-status', pipeRunningHtml('Fetching your feed'));
+    console.log('[rss] GET /api/rss/episodes →', url);
 
     let data;
     try {
-      data = await pipelinePost('/api/run/transcript', { youtube_url: url });
+      const res = await fetch('/api/rss/episodes?feed_url=' + encodeURIComponent(url));
+      data = await res.json();
     } catch (err) {
-      pipeStatus('yt-status', pipeErrorHtml('Network error: ' + err.message));
-      pipeBtn('yt-btn', false, 'Generate Transcript');
+      pipeStatus('rss-status', pipeErrorHtml('Network error: ' + err.message));
+      pipeBtn('rss-btn', false, 'Load Episodes');
+      return;
+    }
+    pipeBtn('rss-btn', false, 'Load Episodes');
+    console.log('[rss] episodes response:', data);
+
+    if (!data.success) {
+      pipeStatus('rss-status', pipeErrorHtml(data.error_message || data.detail || 'Could not load the feed.'));
       return;
     }
 
-    console.log('[youtube] response:', data);
+    pipeStatus('rss-status', pipeSuccessHtml(
+      escHtml(data.feed_title || 'Feed loaded') + ` — ${data.episodes.length} episode(s)`
+    ));
+    renderEpisodes(data.episodes);
+  }
+
+  function fmtDuration(secs) {
+    if (!secs) return '';
+    const m = Math.floor(secs / 60), s = Math.round(secs % 60);
+    return `${m}m ${s.toString().padStart(2, '0')}s`;
+  }
+
+  function renderEpisodes(episodes) {
+    const list = document.getElementById('rss-episodes');
+    list.innerHTML = '';
+
+    episodes.forEach((ep, i) => {
+      const row = document.createElement('div');
+      const dur = fmtDuration(ep.duration_seconds);
+
+      if (ep.selectable) {
+        row.className = 'flex items-center justify-between gap-3 rounded-xl border border-border bg-secondary p-4';
+        row.innerHTML = `
+          <div class="min-w-0">
+            <p class="text-sm font-medium text-foreground truncate">${escHtml(ep.title)}</p>
+            <p class="text-xs text-muted-foreground">
+              ${escHtml(ep.published || '')}${dur ? ' · ' + dur : ''}
+              ${ep.warning ? `<span class="text-warning-foreground"> ⚠ ${escHtml(ep.warning)}</span>` : ''}
+            </p>
+          </div>
+          <button type="button" class="btn-primary text-xs px-3 py-2 whitespace-nowrap" id="ep-btn-${i}">
+            Transcribe
+          </button>`;
+        list.appendChild(row);
+        row.querySelector(`#ep-btn-${i}`).addEventListener('click', () =>
+          doTranscribeEpisode(ep)
+        );
+      } else {
+        row.className = 'flex items-center justify-between gap-3 rounded-xl border border-border bg-secondary p-4 opacity-45';
+        row.innerHTML = `
+          <div class="min-w-0">
+            <p class="text-sm font-medium text-foreground truncate">${escHtml(ep.title)}</p>
+            <p class="text-xs text-muted-foreground">${escHtml(ep.published || '')}${dur ? ' · ' + dur : ''}</p>
+          </div>
+          <span class="text-xs text-muted-foreground whitespace-nowrap">${escHtml(ep.reason || 'Unavailable')}</span>`;
+        list.appendChild(row);
+      }
+    });
+
+    pipeShow('rss-episodes');
+  }
+
+  // ── Transcribe one episode (background job) ────────────────────────
+
+  function doTranscribeEpisode(ep) {
+    document.querySelectorAll('[id^="ep-btn-"]').forEach(b => b.disabled = true);
+    pipeClear('transcribe-status');
+    pipeStatus('transcribe-status', pipeRunningHtml('Starting transcription for “' + escHtml(ep.title) + '”'));
+    console.log('[rss] POST /api/run/transcript/rss →', ep.media_url);
+
+    pipelineJob('/api/run/transcript/rss', {
+      media_url:        ep.media_url,
+      episode_title:    ep.title,
+      episode_link:     ep.episode_link || '',
+      media_type:       ep.media_type || 'audio/mpeg',
+      duration_seconds: ep.duration_seconds || 0,
+    }, {
+      onStart(data) {
+        console.log('[rss] transcription job started:', data.job_id);
+        pipeStatus('transcribe-status', pipeRunningHtml('Transcribing the episode — usually 1–3 minutes'));
+      },
+      onRunning() {
+        pipeStatus('transcribe-status', pipeRunningHtml('Still transcribing'));
+      },
+      onDone(data) {
+        console.log('[rss] transcription done:', data.result);
+        const r = data.result || {};
+        pipeStatus('transcribe-status',
+          pipeSuccessHtml('Transcript saved.') +
+          `<span class="text-muted-foreground ml-2 text-xs">
+            ${r.total_segments || '?'} segments · ${r.total_words || '?'} words
+          </span>`
+        );
+        setTimeout(() => location.reload(), 2000);
+      },
+      onFailed(msg) {
+        console.error('[rss] transcription failed:', msg);
+        pipeStatus('transcribe-status', pipeErrorHtml(msg));
+        document.querySelectorAll('[id^="ep-btn-"]').forEach(b => b.disabled = false);
+      },
+    });
+  }
+
+  // ── Manual transcript fallback ─────────────────────────────────────
+
+  async function doManualTranscript() {
+    const text = document.getElementById('manual-text').value.trim();
+    const src  = document.getElementById('manual-source').value.trim();
+    pipeClear('manual-status');
+
+    if (!text) {
+      pipeStatus('manual-status', pipeErrorHtml('Please paste your transcript text first.'));
+      return;
+    }
+
+    pipeBtn('manual-btn', true, 'Saving…');
+    pipeStatus('manual-status', pipeRunningHtml('Saving your transcript'));
+    console.log('[manual] POST /api/run/transcript/manual —', text.length, 'chars');
+
+    let data;
+    try {
+      data = await pipelinePost('/api/run/transcript/manual', { text, source_url: src });
+    } catch (err) {
+      pipeStatus('manual-status', pipeErrorHtml('Network error: ' + err.message));
+      pipeBtn('manual-btn', false, 'Save Transcript');
+      return;
+    }
+    pipeBtn('manual-btn', false, 'Save Transcript');
 
     if (data.success) {
-      const dur  = data.duration_seconds || 0;
-      const mins = Math.floor(dur / 60);
-      const secs = Math.round(dur % 60);
-      pipeStatus('yt-status',
+      pipeStatus('manual-status',
         pipeSuccessHtml('Transcript saved.') +
         `<span class="text-muted-foreground ml-2 text-xs">
-          ${data.total_segments} segments · ${data.total_words} words · ${mins}m ${secs}s
+          ${data.total_segments} segments · ${data.total_words} words
         </span>`
       );
       setTimeout(() => location.reload(), 1800);
     } else {
-      const msg = data.error_message || data.detail || 'Unknown error.';
-      pipeStatus('yt-status', pipeErrorHtml(msg));
-      pipeBtn('yt-btn', false, 'Generate Transcript');
+      pipeStatus('manual-status', pipeErrorHtml(data.error_message || data.detail || 'Could not parse the transcript.'));
     }
   }
 </script>

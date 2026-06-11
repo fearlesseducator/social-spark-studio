@@ -39,6 +39,9 @@ google-cloud-texttospeech>=2.0.0
 # Google Cloud Firestore — persistent storage on Cloud Run (USE_FIRESTORE=true).
 google-cloud-firestore>=2.0.0
 
+# Google Cloud Storage — temp audio upload for long-form STT (RSS episodes).
+google-cloud-storage>=2.0.0
+
 # ── API Layer ────────────────────────────────────────────────
 # FastAPI — async web framework for serving the studio API.
 fastapi>=0.100.0

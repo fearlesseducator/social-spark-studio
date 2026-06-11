@@ -263,6 +263,158 @@ async def run_transcript_route(request: TranscriptRequest):
 
 
 # ══════════════════════════════════════════════════════════════════════
+# 1b. RSS transcript import (main transcript path)
+# ══════════════════════════════════════════════════════════════════════
+
+@router.get("/rss/episodes")
+async def rss_episodes(feed_url: str = ""):
+    """
+    Fetch an RSS feed and list its episodes with selectability flags.
+
+    Selectable: audio/* enclosure within the 5-20 minute product range
+    (or unknown duration, flagged with a warning).
+    Disabled: no enclosure, video-only, too long, too short.
+    """
+    from tools.rss_fetcher import fetch_feed_episodes
+
+    result = fetch_feed_episodes(feed_url)
+    status = 200 if result.get("success") else 422
+    return JSONResponse(status_code=status, content=result)
+
+
+class RssTranscriptRequest(BaseModel):
+    media_url: str
+    episode_title: str = ""
+    episode_link: str = ""
+    media_type: str = "audio/mpeg"
+    duration_seconds: int = 0     # from the feed — timing fallback
+
+
+def _bg_rss_transcript(job_id: str, media_url: str, episode_title: str,
+                       episode_link: str, media_type: str,
+                       duration_seconds: int = 0) -> None:
+    """
+    Background worker: download episode audio → batch STT (chirp_3 via
+    GCS) → build TranscriptResult → save through the storage router.
+    Produces the exact transcript_output.json the Moments agent expects.
+    """
+    _jobs[job_id]["status"] = "running"
+    try:
+        from tools.rss_fetcher import download_enclosure, build_transcript_result
+        from tools.speech_to_text_tool import transcribe_long_audio
+        from services.storage_service import storage_save_transcript
+
+        print(f"[rss:{job_id}] downloading {media_url[:90]}")
+        audio_bytes = download_enclosure(media_url)
+        print(f"[rss:{job_id}] downloaded {len(audio_bytes)} bytes — transcribing")
+
+        stt = transcribe_long_audio(audio_bytes, content_type=media_type or "audio/mpeg")
+        if not stt.success:
+            _fail_job(job_id, f"Transcription failed: {stt.error_message}")
+            return
+
+        result = build_transcript_result(
+            chunks=stt.chunks,
+            media_url=media_url,
+            episode_title=episode_title,
+            episode_link=episode_link,
+            language_code=stt.language_code or "en-US",
+            fallback_duration=float(duration_seconds or stt.duration_seconds or 0),
+        )
+
+        if result.total_words < MIN_WORDS:
+            _fail_job(
+                job_id,
+                f"Episode transcript too short ({result.total_words} words; "
+                f"minimum {MIN_WORDS}). Choose a longer episode.",
+            )
+            return
+
+        storage_save_transcript(result)
+
+        _finish_job(job_id, {
+            "episode_title":    episode_title,
+            "total_segments":   result.total_segments,
+            "total_words":      result.total_words,
+            "duration_seconds": result.duration_seconds,
+            "output_file":      "transcript_output.json",
+        })
+
+    except (Exception, SystemExit) as exc:
+        _fail_job(job_id, f"{type(exc).__name__}: {exc}")
+
+
+@router.post("/run/transcript/rss")
+async def run_rss_transcript_route(
+    request: RssTranscriptRequest,
+    background_tasks: BackgroundTasks,
+):
+    """
+    Transcribe one RSS episode in a background task (~1-3 minutes for a
+    5-20 minute episode). Poll GET /api/jobs/{job_id} for status.
+    """
+    dna = _dna_path()                       # 422 if MessageDNA missing
+    brief_path = DATA_DIR / "campaign_brief.json"
+    _require_file(brief_path, "Campaign brief not found. Complete the campaign brief first.")
+
+    if not request.media_url.strip():
+        raise HTTPException(status_code=422, detail="media_url is required.")
+
+    job_id = _new_job("rss_transcript")
+    background_tasks.add_task(
+        _bg_rss_transcript,
+        job_id,
+        request.media_url.strip(),
+        request.episode_title,
+        request.episode_link,
+        request.media_type,
+        request.duration_seconds,
+    )
+    return JSONResponse(content={
+        "success":     True,
+        "job_id":      job_id,
+        "poll_url":    f"/api/jobs/{job_id}",
+        "message":     "Episode transcription started. Poll poll_url for status.",
+        "eta_seconds": 90,
+    })
+
+
+class ManualTranscriptRequest(BaseModel):
+    text: str
+    source_url: str = ""
+
+
+@router.post("/run/transcript/manual")
+async def run_manual_transcript_route(request: ManualTranscriptRequest):
+    """
+    Manual transcript paste fallback. Parses pasted text into the same
+    TranscriptResult structure and saves it. Synchronous — fast.
+    """
+    dna = _dna_path()
+    brief_path = DATA_DIR / "campaign_brief.json"
+    _require_file(brief_path, "Campaign brief not found. Complete the campaign brief first.")
+
+    from tools.youtube_fetcher import parse_manual_transcript
+    from services.storage_service import storage_save_transcript
+
+    result = parse_manual_transcript(request.text, request.source_url or "")
+    if not result.is_success:
+        return JSONResponse(status_code=422, content={
+            "success":       False,
+            "error_type":    result.error_type,
+            "error_message": result.error_message,
+        })
+
+    storage_save_transcript(result)
+    return JSONResponse(content={
+        "success":        True,
+        "total_segments": result.total_segments,
+        "total_words":    result.total_words,
+        "output_file":    "transcript_output.json",
+    })
+
+
+# ══════════════════════════════════════════════════════════════════════
 # 2. POST /api/run/export
 # ══════════════════════════════════════════════════════════════════════
 
