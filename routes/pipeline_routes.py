@@ -263,7 +263,194 @@ async def run_transcript_route(request: TranscriptRequest):
 
 
 # ══════════════════════════════════════════════════════════════════════
-# 1b. RSS transcript import (main transcript path)
+# 1a. Founder video upload (main transcript path)
+# ══════════════════════════════════════════════════════════════════════
+
+class SignUploadRequest(BaseModel):
+    filename: str
+    content_type: str = "video/mp4"
+
+
+@router.post("/upload/video/sign")
+async def sign_video_upload(request: SignUploadRequest):
+    """
+    Issue a signed PUT URL so the browser uploads the founder MP4
+    directly to Cloud Storage (Cloud Run caps request bodies at 32 MB,
+    so large videos can't be proxied through the backend).
+
+    Returns upload_url (PUT target), gcs_uri, and public_url.
+    """
+    import os as _os
+    import uuid as _uuid
+    from datetime import timedelta
+
+    bucket_name = _os.getenv("GCS_BUCKET_NAME", "")
+    project     = _os.getenv("GOOGLE_CLOUD_PROJECT", "")
+    if not bucket_name or not project:
+        raise HTTPException(status_code=500, detail="GCS_BUCKET_NAME / GOOGLE_CLOUD_PROJECT not configured.")
+
+    ext = Path(request.filename).suffix.lower() or ".mp4"
+    if ext not in {".mp4", ".m4a", ".mp3", ".wav", ".webm"}:
+        raise HTTPException(status_code=422, detail="Please upload an MP4 video (or MP3/M4A/WAV audio as backup).")
+
+    object_name = f"founder_videos/{_uuid.uuid4().hex}{ext}"
+
+    try:
+        from google.cloud import storage as gcs_storage
+        client = gcs_storage.Client(project=project)
+        blob   = client.bucket(bucket_name).blob(object_name)
+
+        try:
+            # Local dev: service-account key can sign directly
+            upload_url = blob.generate_signed_url(
+                version="v4", method="PUT", expiration=timedelta(minutes=30),
+                content_type=request.content_type,
+            )
+        except Exception:
+            # Cloud Run: no key file — sign via IAM with the attached SA
+            import google.auth
+            from google.auth.transport import requests as ga_requests
+            credentials, _ = google.auth.default()
+            credentials.refresh(ga_requests.Request())
+            upload_url = blob.generate_signed_url(
+                version="v4", method="PUT", expiration=timedelta(minutes=30),
+                content_type=request.content_type,
+                service_account_email=credentials.service_account_email,
+                access_token=credentials.token,
+            )
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"Could not create upload URL: {exc}")
+
+    return JSONResponse(content={
+        "success":     True,
+        "upload_url":  upload_url,
+        "gcs_uri":     f"gs://{bucket_name}/{object_name}",
+        "public_url":  f"https://storage.googleapis.com/{bucket_name}/{object_name}",
+        "content_type": request.content_type,
+    })
+
+
+class VideoTranscriptRequest(BaseModel):
+    gcs_uri: str
+    public_url: str = ""
+    title: str = ""
+    duration_seconds: int = 0     # optional hint for timing fallback
+
+
+def _bg_video_transcript(job_id: str, gcs_uri: str, public_url: str,
+                         title: str, duration_seconds: int) -> None:
+    """
+    Background worker for founder video uploads.
+
+    MP4 containers can't be decoded by Speech-to-Text batch, so:
+      video upload → download from GCS → ffmpeg audio extraction →
+      batch STT (proven MP3 path) → TranscriptResult with the MP4's
+      public URL preserved as video_url for future clip generation.
+    Audio uploads (mp3/m4a/wav) skip extraction and transcribe in place.
+    """
+    _jobs[job_id]["status"] = "running"
+    try:
+        from tools.speech_to_text_tool import transcribe_long_audio, extract_audio_from_video
+        from tools.rss_fetcher import build_transcript_result
+        from services.storage_service import storage_save_transcript
+
+        is_video = gcs_uri.lower().endswith((".mp4", ".mov"))
+
+        if is_video:
+            import os as _os
+            from google.cloud import storage as gcs_storage
+            print(f"[video:{job_id}] downloading {gcs_uri} for audio extraction")
+            bucket_name, _, object_name = gcs_uri.removeprefix("gs://").partition("/")
+            client = gcs_storage.Client(project=_os.getenv("GOOGLE_CLOUD_PROJECT"))
+            video_bytes = client.bucket(bucket_name).blob(object_name).download_as_bytes()
+            print(f"[video:{job_id}] extracting audio from {len(video_bytes)} bytes")
+            audio_bytes = extract_audio_from_video(video_bytes)
+            print(f"[video:{job_id}] audio extracted: {len(audio_bytes)} bytes — transcribing")
+            if not duration_seconds:
+                from tools.speech_to_text_tool import probe_media_duration
+                duration_seconds = int(probe_media_duration(audio_bytes))
+                print(f"[video:{job_id}] probed duration: {duration_seconds}s")
+            stt = transcribe_long_audio(audio_bytes=audio_bytes, content_type="audio/mpeg",
+                                        timeout_seconds=1800)
+        else:
+            print(f"[video:{job_id}] transcribing audio in place: {gcs_uri}")
+            stt = transcribe_long_audio(gcs_uri=gcs_uri, timeout_seconds=1800)
+
+        if not stt.success:
+            _fail_job(job_id, f"Transcription failed: {stt.error_message}")
+            return
+
+        result = build_transcript_result(
+            chunks=stt.chunks,
+            media_url=public_url or gcs_uri,
+            episode_title=title,
+            episode_link=public_url,
+            language_code=stt.language_code or "en-US",
+            fallback_duration=float(duration_seconds or stt.duration_seconds or 0),
+        )
+        # Preserve the uploaded MP4 as the canonical source for clips
+        result.video_id  = "upload_" + result.video_id.removeprefix("rss_")
+        result.video_url = public_url or gcs_uri
+
+        if result.total_words < MIN_WORDS:
+            _fail_job(
+                job_id,
+                f"Transcript too short ({result.total_words} words; minimum {MIN_WORDS}). "
+                "Make sure the video has clear spoken audio.",
+            )
+            return
+
+        storage_save_transcript(result)
+
+        _finish_job(job_id, {
+            "title":            title,
+            "video_url":        result.video_url,
+            "total_segments":   result.total_segments,
+            "total_words":      result.total_words,
+            "duration_seconds": result.duration_seconds,
+            "output_file":      "transcript_output.json",
+        })
+
+    except (Exception, SystemExit) as exc:
+        _fail_job(job_id, f"{type(exc).__name__}: {exc}")
+
+
+@router.post("/run/transcript/video")
+async def run_video_transcript_route(
+    request: VideoTranscriptRequest,
+    background_tasks: BackgroundTasks,
+):
+    """
+    Transcribe an uploaded founder video (already in GCS) in a
+    background task. Poll GET /api/jobs/{job_id} for status.
+    """
+    dna = _dna_path()
+    brief_path = DATA_DIR / "campaign_brief.json"
+    _require_file(brief_path, "Campaign brief not found. Complete the campaign brief first.")
+
+    if not request.gcs_uri.strip().startswith("gs://"):
+        raise HTTPException(status_code=422, detail="gcs_uri must be a gs:// URI from /api/upload/video/sign.")
+
+    job_id = _new_job("video_transcript")
+    background_tasks.add_task(
+        _bg_video_transcript,
+        job_id,
+        request.gcs_uri.strip(),
+        request.public_url,
+        request.title,
+        request.duration_seconds,
+    )
+    return JSONResponse(content={
+        "success":     True,
+        "job_id":      job_id,
+        "poll_url":    f"/api/jobs/{job_id}",
+        "message":     "Video transcription started. Poll poll_url for status.",
+        "eta_seconds": 180,
+    })
+
+
+# ══════════════════════════════════════════════════════════════════════
+# 1b. RSS transcript import (secondary path)
 # ══════════════════════════════════════════════════════════════════════
 
 @router.get("/rss/episodes")

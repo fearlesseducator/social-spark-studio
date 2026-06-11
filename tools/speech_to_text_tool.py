@@ -160,18 +160,23 @@ def transcribe_audio(
 
 
 def transcribe_long_audio(
-    audio_bytes: bytes,
+    audio_bytes: bytes = b"",
     content_type: str = "audio/mpeg",
     language_code: str = "en-US",
     timeout_seconds: int = 900,
+    gcs_uri: str = "",
 ) -> "LongTranscriptionResult":
     """
-    Transcribe long-form audio (podcast episodes, 5-20 minutes) using
+    Transcribe long-form audio/video (5-20 minute episodes) using
     Speech-to-Text v2 batch_recognize.
 
-    The sync recognize API is limited to ~60s/10MB inline, so long audio
-    is uploaded to GCS (GCS_BUCKET_NAME) first, batch-transcribed, then
-    the temp object is deleted.
+    Two input modes:
+        audio_bytes — uploaded to a temp GCS object (deleted after)
+        gcs_uri     — media already in GCS (e.g. uploaded founder MP4);
+                      batch_recognize reads it in place, nothing deleted
+
+    AutoDetectDecodingConfig handles MP3/WAV/FLAC/OGG/WEBM and the AAC
+    audio track inside MP4 uploads.
 
     Returns LongTranscriptionResult with per-chunk text + end offsets so
     callers can build timestamped segments.
@@ -186,8 +191,10 @@ def transcribe_long_audio(
 
     if not project:
         return LongTranscriptionResult(success=False, error_message="GOOGLE_CLOUD_PROJECT not set.")
-    if not bucket_name:
+    if not gcs_uri and not bucket_name:
         return LongTranscriptionResult(success=False, error_message="GCS_BUCKET_NAME not set — needed for long audio transcription.")
+    if not gcs_uri and not audio_bytes:
+        return LongTranscriptionResult(success=False, error_message="No audio provided (audio_bytes or gcs_uri required).")
 
     blob = None
     try:
@@ -196,12 +203,13 @@ def transcribe_long_audio(
         from google.cloud.speech_v2.types import cloud_speech
         from google.api_core.client_options import ClientOptions
 
-        # 1. Upload audio to GCS
-        storage_client = gcs_storage.Client(project=project)
-        bucket = storage_client.bucket(bucket_name)
-        blob = bucket.blob(f"rss_audio/{_uuid.uuid4().hex}")
-        blob.upload_from_string(audio_bytes, content_type=content_type)
-        gcs_uri = f"gs://{bucket_name}/{blob.name}"
+        # 1. Resolve the GCS URI (upload temp object only for bytes mode)
+        if not gcs_uri:
+            storage_client = gcs_storage.Client(project=project)
+            bucket = storage_client.bucket(bucket_name)
+            blob = bucket.blob(f"rss_audio/{_uuid.uuid4().hex}")
+            blob.upload_from_string(audio_bytes, content_type=content_type)
+            gcs_uri = f"gs://{bucket_name}/{blob.name}"
 
         # 2. Batch recognize
         if location and location != "global":
@@ -212,6 +220,9 @@ def transcribe_long_audio(
             client = SpeechClient()
 
         recognizer = f"projects/{project}/locations/{location}/recognizers/_"
+        # NOTE: MP4 containers are NOT supported by AutoDetect (and
+        # explicit MP4_AAC fails with chirp_3). Callers must extract the
+        # audio track first — see extract_audio_from_video().
         config = cloud_speech.RecognitionConfig(
             auto_decoding_config=cloud_speech.AutoDetectDecodingConfig(),
             language_codes=[language_code],
@@ -322,6 +333,73 @@ def transcribe_file(
         audio_bytes = f.read()
 
     return transcribe_audio(audio_bytes, encoding=encoding, language_code=language_code)
+
+
+def extract_audio_from_video(video_bytes: bytes) -> bytes:
+    """
+    Extract the audio track from an MP4/MOV video as MP3 using ffmpeg.
+
+    Speech-to-Text v2 batch cannot decode MP4 containers (AutoDetect
+    rejects them; explicit MP4_AAC fails with chirp_3), so founder video
+    uploads are converted to MP3 before transcription.
+
+    Requires the ffmpeg binary (installed in the Dockerfile for Cloud
+    Run). Raises RuntimeError with a clear message when unavailable
+    or when extraction fails (e.g. video has no audio track).
+    """
+    import shutil
+    import subprocess
+    import tempfile
+    from pathlib import Path as _Path
+
+    if shutil.which("ffmpeg") is None:
+        raise RuntimeError(
+            "ffmpeg is not installed on this server — cannot extract audio "
+            "from video. Upload an MP3/M4A audio file instead."
+        )
+
+    with tempfile.TemporaryDirectory() as tmp:
+        src = _Path(tmp) / "input.mp4"
+        dst = _Path(tmp) / "audio.mp3"
+        src.write_bytes(video_bytes)
+        proc = subprocess.run(
+            ["ffmpeg", "-y", "-i", str(src), "-vn",
+             "-acodec", "libmp3lame", "-b:a", "96k", "-ac", "1", str(dst)],
+            capture_output=True, timeout=600,
+        )
+        if proc.returncode != 0 or not dst.exists() or dst.stat().st_size == 0:
+            stderr_tail = proc.stderr.decode("utf-8", errors="replace")[-300:]
+            raise RuntimeError(
+                "Could not extract audio from the video. Make sure the MP4 "
+                f"has an audio track. ffmpeg said: {stderr_tail}"
+            )
+        return dst.read_bytes()
+
+
+def probe_media_duration(media_bytes: bytes, suffix: str = ".mp3") -> float:
+    """
+    Return the duration in seconds of a media file using ffprobe.
+    Returns 0.0 when ffprobe is unavailable or the probe fails.
+    """
+    import shutil
+    import subprocess
+    import tempfile
+    from pathlib import Path as _Path
+
+    if shutil.which("ffprobe") is None:
+        return 0.0
+    try:
+        with tempfile.TemporaryDirectory() as tmp:
+            f = _Path(tmp) / f"media{suffix}"
+            f.write_bytes(media_bytes)
+            proc = subprocess.run(
+                ["ffprobe", "-v", "error", "-show_entries", "format=duration",
+                 "-of", "csv=p=0", str(f)],
+                capture_output=True, timeout=120,
+            )
+            return float(proc.stdout.decode().strip())
+    except Exception:
+        return 0.0
 
 
 def stt_is_configured() -> bool:

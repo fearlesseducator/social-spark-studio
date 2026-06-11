@@ -26,7 +26,56 @@ MAX_DOWNLOAD_MB = 50     # ~20 min of high-bitrate audio with headroom
 _ITUNES_NS = "{http://www.itunes.com/dtds/podcast-1.0.dtd}"
 _ATOM_NS   = "{http://www.w3.org/2005/Atom}"
 
-_USER_AGENT = "SocialSparkStudio/1.0 (RSS transcript import)"
+_USER_AGENT = (
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+    "(KHTML, like Gecko) Chrome/126.0 Safari/537.36"
+)
+
+_CHANNEL_ID_RE = re.compile(r"^UC[A-Za-z0-9_-]{18,}$")
+
+
+def normalize_feed_input(raw: str) -> tuple[list[str], str]:
+    """
+    Turn user input into a list of candidate feed URLs to try in order.
+
+    Accepts:
+        - bare YouTube Channel ID (UC…)            → channel feed, then UU playlist feed
+        - YouTube channel URL (…/channel/UC…)      → same as above
+        - full feed URL (anything else URL-shaped) → as-is
+    Returns (candidates, error_message). error_message set when input
+    is an individual video URL or unrecognisable.
+    """
+    raw = (raw or "").strip()
+    if not raw:
+        return [], "Please enter your Channel ID or RSS feed URL."
+
+    if is_youtube_video_url(raw):
+        return [], "Please paste your Channel ID or RSS feed link, not an individual YouTube video URL."
+
+    # Bare Channel ID
+    if _CHANNEL_ID_RE.match(raw):
+        uu = "UU" + raw[2:]
+        return [
+            f"https://www.youtube.com/feeds/videos.xml?channel_id={raw}",
+            f"https://www.youtube.com/feeds/videos.xml?playlist_id={uu}",
+        ], ""
+
+    # Channel URL → extract the ID
+    m = re.search(r"youtube\.com/channel/(UC[A-Za-z0-9_-]{18,})", raw)
+    if m:
+        cid = m.group(1)
+        uu = "UU" + cid[2:]
+        return [
+            f"https://www.youtube.com/feeds/videos.xml?channel_id={cid}",
+            f"https://www.youtube.com/feeds/videos.xml?playlist_id={uu}",
+        ], ""
+
+    # Anything URL-shaped → try as-is
+    if raw.startswith(("http://", "https://")):
+        return [raw], ""
+
+    return [], ("That doesn't look like a Channel ID or feed URL. "
+                "Your Channel ID usually starts with UC.")
 
 
 @dataclass
@@ -104,24 +153,33 @@ def _classify(ep: RssEpisode) -> None:
     ep.selectable = True
 
 
-def fetch_feed_episodes(feed_url: str, limit: int = 15) -> dict:
+def fetch_feed_episodes(feed_input: str, limit: int = 15) -> dict:
     """
-    Fetch and parse an RSS/Atom feed.
+    Fetch and parse a feed from user input — a bare YouTube Channel ID,
+    a channel URL, or a full RSS feed URL. Channel IDs expand to the
+    channel feed first, then the UU uploads-playlist feed as fallback.
 
     Returns:
         {"success": bool, "feed_title": str, "episodes": [RssEpisode dicts],
          "error_message": str}
     """
-    feed_url = (feed_url or "").strip()
-    if not feed_url:
-        return {"success": False, "error_message": "Please enter an RSS feed URL.", "episodes": []}
+    candidates, err = normalize_feed_input(feed_input)
+    if err:
+        return {"success": False, "error_message": err, "episodes": []}
 
-    if is_youtube_video_url(feed_url):
-        return {
-            "success": False,
-            "error_message": "Please paste your RSS feed link, not an individual YouTube video URL.",
-            "episodes": [],
-        }
+    last_error = ""
+    for feed_url in candidates:
+        result = _fetch_and_parse(feed_url, limit)
+        if result["success"]:
+            return result
+        last_error = result["error_message"]
+
+    return {"success": False, "error_message": last_error, "episodes": []}
+
+
+def _fetch_and_parse(feed_url: str, limit: int = 15) -> dict:
+    """Fetch one feed URL and parse it. Internal — called per candidate."""
+    is_youtube_feed = "youtube.com/feeds" in feed_url
 
     try:
         raw = _http_get(feed_url)
@@ -134,6 +192,16 @@ def fetch_feed_episodes(feed_url: str, limit: int = 15) -> dict:
             "episodes": [],
         }
     except Exception as exc:
+        if is_youtube_feed:
+            return {
+                "success": False,
+                "error_message": (
+                    "YouTube blocked the feed request from our server — this is a known "
+                    "YouTube restriction on cloud services. Please use the RSS feed from "
+                    "your podcast/audio host instead, or paste your transcript manually below."
+                ),
+                "episodes": [],
+            }
         return {
             "success": False,
             "error_message": f"Could not fetch the feed: {type(exc).__name__}: {exc}",
@@ -175,7 +243,9 @@ def fetch_feed_episodes(feed_url: str, limit: int = 15) -> dict:
                 media_url="",
                 media_type="",
             )
-            _classify(ep)   # → "No audio file found"
+            _classify(ep)
+            # YouTube entries are videos — clearer reason than "no audio"
+            ep.reason = "Video file — audio extraction coming soon"
             episodes.append(ep)
     else:
         return {

@@ -3,6 +3,12 @@ FROM python:3.12-slim
 
 WORKDIR /app
 
+# ffmpeg — extracts the audio track from uploaded founder MP4s
+# (Speech-to-Text batch cannot decode MP4 containers directly)
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends ffmpeg \
+    && rm -rf /var/lib/apt/lists/*
+
 # Install dependencies first so Docker layer caching skips
 # reinstalling them on every code change.
 COPY requirements.txt .

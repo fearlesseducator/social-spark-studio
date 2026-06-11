@@ -12,23 +12,49 @@
     <p class="mt-2 text-muted-foreground">The source transcript your moments and posts are built from.</p>
   </header>
 
-  <!-- ── Main path: Import from RSS Feed ─────────────────────── -->
-  <section class="card p-6">
-    <h2 class="text-base font-semibold text-foreground mb-1">Import from RSS Feed</h2>
-    <p class="text-sm text-muted-foreground mb-1">
-      Choose an audio episode from your RSS feed. Social Spark Studio is designed
-      for 5–20 minute founder videos, lives, or podcast-style episodes.
+  <!-- ── Main path: Upload Your Founder Video ─────────────────── -->
+  <section class="card p-6 border-primary-30">
+    <h2 class="text-base font-semibold text-foreground mb-1">Upload Your Founder Video</h2>
+    <p class="text-sm text-muted-foreground mb-4">
+      Upload a 5–20 minute MP4 video. Social Spark Studio will transcribe it,
+      identify founder-aligned moments, and prepare campaign-ready posts.
     </p>
-    <p class="text-xs text-muted-foreground mb-4">
-      Best for lives, recurring shows, and YouTube channel content.
-      Paste your RSS feed, choose an audio episode, and Social Spark Studio will transcribe it.
+    <div class="flex flex-col sm:flex-row gap-3 items-start">
+      <input
+        id="video-file"
+        type="file"
+        accept="video/mp4,.mp4,audio/mpeg,.mp3,audio/x-m4a,.m4a,.wav"
+        class="flex-1 rounded-xl border border-border bg-background px-4 py-2 text-sm text-foreground file:mr-3 file:rounded-lg file:border-0 file:bg-primary file:px-3 file:py-1.5 file:text-xs file:font-semibold file:text-primary-foreground"
+      />
+      <button
+        type="button"
+        id="video-btn"
+        onclick="doUploadVideo()"
+        class="btn-primary whitespace-nowrap"
+      >
+        <i data-lucide="upload" class="h-4 w-4"></i>
+        <span>Upload &amp; Transcribe</span>
+      </button>
+    </div>
+    <p class="mt-2 text-xs text-muted-foreground">
+      MP4 video is the main path. Audio files (MP3/M4A/WAV) work as a backup.
+    </p>
+    <div id="video-status" class="hidden mt-3 rounded-xl border border-border bg-secondary px-4 py-3 text-sm"></div>
+  </section>
+
+  <!-- ── Secondary: Import from RSS Feed ──────────────────────── -->
+  <section class="card p-6">
+    <h2 class="text-base font-semibold text-foreground mb-1">Or import from an RSS feed</h2>
+    <p class="text-sm text-muted-foreground mb-4">
+      Have a recurring show? Paste your RSS feed or YouTube Channel ID and
+      choose a 5–20 minute audio episode to transcribe.
     </p>
 
     <div class="flex flex-col sm:flex-row gap-3">
       <input
         id="rss-url"
-        type="url"
-        placeholder="https://feeds.example.com/your-show.rss"
+        type="text"
+        placeholder="Your YouTube Channel ID (UC…) or RSS feed URL"
         class="flex-1 rounded-xl border border-border bg-background px-4 py-2.5 text-sm outline-none placeholder:text-muted-foreground text-foreground focus:ring-2 focus:ring-primary"
       />
       <button
@@ -51,13 +77,12 @@
   <!-- ── Where do I find my RSS feed? ─────────────────────────── -->
   <section class="rounded-2xl border border-primary-30 bg-primary-soft p-5">
     <p class="text-xs font-bold uppercase tracking-wide text-accent-foreground mb-2">
-      Where do I find my RSS feed?
+      Where do I find my Channel ID or RSS feed?
     </p>
     <ul class="space-y-1.5 text-sm text-foreground list-disc pl-5">
-      <li>Go to the platform where your show/audio episodes are published.</li>
-      <li>Look for a link called <strong>RSS Feed</strong>, <strong>Podcast RSS</strong>, <strong>Distribution Feed</strong>, or <strong>Copy RSS Link</strong>.</li>
-      <li>Paste the RSS feed URL here.</li>
-      <li>A YouTube video URL is <strong>not</strong> the same as an RSS feed.</li>
+      <li><strong>YouTube:</strong> Go to YouTube Studio → Settings → Channel → Advanced settings → copy your <strong>Channel ID</strong>. Paste the Channel ID here. It usually starts with <strong>UC</strong>.</li>
+      <li><strong>Podcast / audio host:</strong> look for a link called <strong>RSS Feed</strong> or <strong>Copy RSS Link</strong> and paste the URL here.</li>
+      <li>An individual YouTube video URL will not work — use your Channel ID instead.</li>
     </ul>
   </section>
 
@@ -151,6 +176,111 @@
 <script>
   lucide.createIcons();
 
+  // ── Upload founder video (main path) ──────────────────────────────
+  // Browser uploads straight to Cloud Storage via a signed URL
+  // (Cloud Run caps request bodies at 32 MB), then the backend
+  // transcribes the file in place.
+
+  async function doUploadVideo() {
+    const input = document.getElementById('video-file');
+    const file  = input.files && input.files[0];
+    pipeClear('video-status');
+
+    if (!file) {
+      pipeStatus('video-status', pipeErrorHtml('Please choose an MP4 video file first.'));
+      return;
+    }
+    const okTypes = ['video/mp4', 'audio/mpeg', 'audio/mp3', 'audio/x-m4a', 'audio/mp4', 'audio/wav', 'audio/x-wav'];
+    if (file.type && !okTypes.includes(file.type)) {
+      pipeStatus('video-status', pipeErrorHtml('Unsupported file type. Please upload an MP4 video (or MP3/M4A/WAV audio).'));
+      return;
+    }
+    if (file.size > 500 * 1024 * 1024) {
+      pipeStatus('video-status', pipeErrorHtml('File is over 500 MB. This tool is designed for 5–20 minute videos.'));
+      return;
+    }
+
+    pipeBtn('video-btn', true, 'Uploading…');
+    pipeStatus('video-status', pipeRunningHtml('Preparing upload'));
+    console.log('[video] sign request for', file.name, file.size, 'bytes, type:', file.type);
+
+    // 1. Get a signed upload URL
+    let sign;
+    try {
+      sign = await pipelinePost('/api/upload/video/sign', {
+        filename: file.name,
+        content_type: file.type || 'video/mp4',
+      });
+    } catch (err) {
+      pipeStatus('video-status', pipeErrorHtml('Network error: ' + err.message));
+      pipeBtn('video-btn', false, 'Upload & Transcribe');
+      return;
+    }
+    if (!sign.success) {
+      pipeStatus('video-status', pipeErrorHtml(sign.detail || sign.error_message || 'Could not prepare the upload.'));
+      pipeBtn('video-btn', false, 'Upload & Transcribe');
+      return;
+    }
+
+    // 2. PUT the file directly to Cloud Storage (XHR for progress)
+    console.log('[video] uploading to GCS:', sign.gcs_uri);
+    try {
+      await new Promise((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+        xhr.open('PUT', sign.upload_url);
+        xhr.setRequestHeader('Content-Type', sign.content_type);
+        xhr.upload.onprogress = (e) => {
+          if (e.lengthComputable) {
+            const pct = Math.round((e.loaded / e.total) * 100);
+            pipeStatus('video-status', pipeRunningHtml(`Uploading your video — ${pct}%`));
+          }
+        };
+        xhr.onload  = () => (xhr.status >= 200 && xhr.status < 300)
+          ? resolve()
+          : reject(new Error('Upload failed with HTTP ' + xhr.status));
+        xhr.onerror = () => reject(new Error('Upload failed — network or CORS error.'));
+        xhr.send(file);
+      });
+    } catch (err) {
+      console.error('[video] upload error:', err);
+      pipeStatus('video-status', pipeErrorHtml(err.message));
+      pipeBtn('video-btn', false, 'Upload & Transcribe');
+      return;
+    }
+    console.log('[video] upload complete — starting transcription');
+
+    // 3. Kick off transcription on the uploaded file
+    pipelineJob('/api/run/transcript/video', {
+      gcs_uri:    sign.gcs_uri,
+      public_url: sign.public_url,
+      title:      file.name.replace(/\.[^.]+$/, ''),
+    }, {
+      onStart(data) {
+        console.log('[video] transcription job started:', data.job_id);
+        pipeStatus('video-status', pipeRunningHtml('Transcribing your video — this can take a few minutes'));
+      },
+      onRunning() {
+        pipeStatus('video-status', pipeRunningHtml('Still transcribing'));
+      },
+      onDone(data) {
+        console.log('[video] transcription done:', data.result);
+        const r = data.result || {};
+        pipeStatus('video-status',
+          pipeSuccessHtml('Transcript saved.') +
+          `<span class="text-muted-foreground ml-2 text-xs">
+            ${r.total_segments || '?'} segments · ${r.total_words || '?'} words
+          </span>`
+        );
+        setTimeout(() => location.reload(), 2000);
+      },
+      onFailed(msg) {
+        console.error('[video] transcription failed:', msg);
+        pipeStatus('video-status', pipeErrorHtml(msg));
+        pipeBtn('video-btn', false, 'Upload & Transcribe');
+      },
+    });
+  }
+
   // ── Load RSS feed episodes ─────────────────────────────────────────
 
   async function doLoadFeed() {
@@ -160,12 +290,12 @@
     pipeHide('rss-episodes');
 
     if (!url) {
-      pipeStatus('rss-status', pipeErrorHtml('Please enter an RSS feed URL.'));
+      pipeStatus('rss-status', pipeErrorHtml('Please enter your Channel ID or RSS feed URL.'));
       return;
     }
     // Individual YouTube video URLs are not feeds
     if (/(?:youtube\.com\/watch\?|youtu\.be\/|youtube\.com\/shorts\/)/.test(url)) {
-      pipeStatus('rss-status', pipeErrorHtml('Please paste your RSS feed link, not an individual YouTube video URL.'));
+      pipeStatus('rss-status', pipeErrorHtml('Please paste your Channel ID or RSS feed link, not an individual YouTube video URL.'));
       return;
     }
 
