@@ -605,20 +605,45 @@ async def run_manual_transcript_route(request: ManualTranscriptRequest):
 # 2. POST /api/run/export
 # ══════════════════════════════════════════════════════════════════════
 
+class ExportRequest(BaseModel):
+    start_date: str = ""      # "YYYY-MM-DD" — campaign start
+    posting_time: str = ""    # "HH:MM" (24h, from <input type=time>)
+
+
 @router.post("/run/export")
-async def run_export_route():
+async def run_export_route(request: ExportRequest = None):
     """
     Write a scheduler-ready CSV from posts_output.json.
 
     Imports build_row() and build_output_path() from run_export.py
     (pure functions, no side effects, no sys.exit).
-    Returns immediately — writing a CSV is fast.
+
+    Web-flow adjustments applied per row:
+      - videoUrls is blank: no real hosted MP4 clips exist yet, and
+        schedulers can't use source-timestamp links. Timestamps stay
+        in posts_output.json for future clip generation.
+      - postAtSpecificTime is filled from start_date + posting_time:
+        one post per day, "YYYY-MM-DD HH:mm:ss".
     """
     posts_path = DATA_DIR / "posts_output.json"
     _require_file(
         posts_path,
         "posts_output.json not found. Run the captions phase first."
     )
+
+    # Optional schedule inputs
+    schedule_start = None
+    if request and request.start_date and request.posting_time:
+        from datetime import datetime as _dt
+        try:
+            schedule_start = _dt.strptime(
+                f"{request.start_date} {request.posting_time}", "%Y-%m-%d %H:%M"
+            )
+        except ValueError:
+            raise HTTPException(
+                status_code=422,
+                detail="Invalid schedule. Use start_date YYYY-MM-DD and posting_time HH:MM.",
+            )
 
     # Import only the pure helper functions — never main() or check_prerequisites()
     from run_export import build_row, build_output_path, CSV_COLUMNS
@@ -637,11 +662,20 @@ async def run_export_route():
     )
     output_path.parent.mkdir(parents=True, exist_ok=True)
 
+    from datetime import timedelta as _td
     with open(output_path, "w", newline="", encoding="utf-8") as f:
         writer = csv.DictWriter(f, fieldnames=CSV_COLUMNS, quoting=csv.QUOTE_ALL)
         writer.writeheader()
-        for post in posts:
-            writer.writerow(build_row(post))
+        for i, post in enumerate(posts):
+            row = build_row(post)
+            # No finished MP4 clips yet — never export timestamp links
+            row["videoUrls"] = ""
+            # One post per day at the chosen time
+            if schedule_start is not None:
+                row["postAtSpecificTime"] = (
+                    (schedule_start + _td(days=i)).strftime("%Y-%m-%d %H:%M:%S")
+                )
+            writer.writerow(row)
 
     failed_images = [
         p.post_number
@@ -652,6 +686,8 @@ async def run_export_route():
     return JSONResponse(content={
         "success":        True,
         "posts_exported": len(posts),
+        "scheduled":      schedule_start is not None,
+        "schedule_start": schedule_start.strftime("%Y-%m-%d %H:%M:%S") if schedule_start else None,
         "output_file":    output_path.name,
         "download_url":   f"/download-csv?file={output_path.name}",
         "failed_images":  failed_images,

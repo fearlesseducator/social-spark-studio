@@ -79,6 +79,35 @@
       Create a fresh scheduler-ready CSV from your current posts.
       Includes all posts — video clips, image posts, and text quotes.
     </p>
+
+    <!-- Schedule inputs -->
+    <div class="mb-4 rounded-xl border border-border bg-secondary p-4">
+      <p class="text-sm font-semibold text-foreground mb-1">Campaign schedule</p>
+      <p class="text-xs text-muted-foreground mb-3">
+        Choose when your campaign should begin. Social Spark Studio will
+        schedule one post per day at this time.
+      </p>
+      <div class="flex flex-col sm:flex-row gap-3">
+        <label class="flex-1 text-xs text-muted-foreground">
+          Start date
+          <input
+            id="schedule-date"
+            type="date"
+            class="mt-1 w-full rounded-xl border border-border bg-background px-3 py-2 text-sm text-foreground outline-none focus:ring-2 focus:ring-primary"
+          />
+        </label>
+        <label class="flex-1 text-xs text-muted-foreground">
+          Posting time
+          <input
+            id="schedule-time"
+            type="time"
+            value="09:00"
+            class="mt-1 w-full rounded-xl border border-border bg-background px-3 py-2 text-sm text-foreground outline-none focus:ring-2 focus:ring-primary"
+          />
+        </label>
+      </div>
+    </div>
+
     <button
       type="button"
       id="export-btn"
@@ -123,15 +152,21 @@
   lucide.createIcons();
 
   async function doExport() {
+    const startDate = document.getElementById('schedule-date').value;
+    const postTime  = document.getElementById('schedule-time').value;
+
     pipeBtn('export-btn', true, 'Generating…');
     pipeClear('export-status');
     pipeClear('export-download');
     pipeStatus('export-status', pipeRunningHtml('Writing CSV file'));
-    console.log('[export] POST /api/run/export');
+    console.log('[export] POST /api/run/export — schedule:', startDate, postTime);
 
     let data;
     try {
-      data = await pipelinePost('/api/run/export');
+      data = await pipelinePost('/api/run/export', {
+        start_date:   startDate || '',
+        posting_time: startDate ? (postTime || '09:00') : '',
+      });
     } catch (err) {
       pipeStatus('export-status', pipeErrorHtml('Network error: ' + err.message));
       pipeBtn('export-btn', false, 'Generate CSV');
@@ -144,8 +179,11 @@
       const warn = data.failed_images && data.failed_images.length
         ? `<span class="text-warning-foreground ml-2 text-xs">⚠ Posts ${data.failed_images.join(', ')} have no images.</span>`
         : '';
+      const sched = data.scheduled
+        ? `<span class="text-muted-foreground ml-2 text-xs">Scheduled one post per day starting ${escHtml(data.schedule_start)}.</span>`
+        : `<span class="text-muted-foreground ml-2 text-xs">No schedule set — postAtSpecificTime left blank.</span>`;
       pipeStatus('export-status',
-        pipeSuccessHtml(`${data.posts_exported} posts exported to ${escHtml(data.output_file)}.`) + warn
+        pipeSuccessHtml(`${data.posts_exported} posts exported to ${escHtml(data.output_file)}.`) + sched + warn
       );
 
       // Show download link
