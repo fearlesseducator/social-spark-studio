@@ -63,6 +63,13 @@
     {% endfor %}
   </div>
 
+  <!-- CSV-editing note -->
+  <p class="rounded-xl border border-border bg-secondary px-4 py-3 text-sm text-muted-foreground">
+    <i data-lucide="info" class="inline h-3.5 w-3.5 text-accent-foreground"></i>
+    Review your generated posts below. Final caption, hashtag, and image URL edits
+    can be made after exporting the CSV.
+  </p>
+
   <!-- Post list -->
   <div class="space-y-4">
     {% for post in posts %}
@@ -144,9 +151,6 @@
   <div class="flex flex-wrap gap-3">
     <a href="/export" class="btn-primary">
       Export to CSV <i data-lucide="download" class="h-4 w-4"></i>
-    </a>
-    <a href="/images" class="btn-secondary">
-      Manage Images
     </a>
   </div>
 

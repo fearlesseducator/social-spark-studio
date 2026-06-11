@@ -88,8 +88,11 @@
 
   {% if transcript %}
   <!-- ── Current transcript status ─────────────────────────────── -->
-  <div class="card p-6 space-y-4">
-    <h2 class="text-base font-semibold text-foreground">Current transcript</h2>
+  <div class="card p-6 space-y-4 border-success-30">
+    <h2 class="text-base font-semibold text-foreground">A transcript is already available.</h2>
+    <p class="text-sm text-muted-foreground -mt-2">
+      Transcript saved. You can now generate moments from this video, or upload a new one above to replace it.
+    </p>
     {% if transcript.video_id %}
     <div class="flex items-center gap-3 rounded-xl border border-border bg-secondary p-4">
       <i data-lucide="file-audio" class="h-5 w-5 text-accent-foreground shrink-0"></i>
@@ -130,7 +133,7 @@
 
   <div class="flex flex-wrap gap-3">
     <a href="/moments" class="btn-primary">
-      View Moments <i data-lucide="arrow-right" class="h-4 w-4"></i>
+      Continue to Moments <i data-lucide="arrow-right" class="h-4 w-4"></i>
     </a>
     <a href="/dashboard" class="btn-secondary">Dashboard</a>
   </div>
@@ -265,13 +268,34 @@
       onDone(data) {
         console.log('[video] transcription done:', data.result);
         const r = data.result || {};
-        pipeStatus('video-status',
-          pipeSuccessHtml('Transcript saved.') +
-          `<span class="text-muted-foreground ml-2 text-xs">
-            ${r.total_segments || '?'} segments · ${r.total_words || '?'} words
-          </span>`
-        );
-        setTimeout(() => location.reload(), 2000);
+        const mins = r.duration_seconds ? Math.floor(r.duration_seconds / 60) : 0;
+        const secs = r.duration_seconds ? Math.round(r.duration_seconds % 60) : 0;
+        const durStr = r.duration_seconds ? `${mins}m ${secs}s` : '';
+        // Persistent completed state — no reload, the upload never "disappears"
+        pipeStatus('video-status', `
+          <div class="space-y-3">
+            <p class="font-semibold text-success-foreground">
+              ✓ Video transcribed successfully. Your transcript is ready.
+            </p>
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs text-muted-foreground">
+              <div><span class="font-semibold text-foreground">File:</span><br/>${escHtml(r.title || file.name)}</div>
+              <div><span class="font-semibold text-foreground">Words:</span><br/>${r.total_words || '—'}</div>
+              <div><span class="font-semibold text-foreground">Duration:</span><br/>${durStr || '—'}</div>
+              <div><span class="font-semibold text-foreground">Segments:</span><br/>${r.total_segments || '—'}</div>
+            </div>
+            <p class="text-xs text-muted-foreground">
+              Transcript saved. You can now generate moments from this video.
+            </p>
+            <a href="/moments" class="btn-primary inline-flex text-sm">
+              Continue to Moments
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 24 24" fill="none"
+                   stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M5 12h14"/><path d="m12 5 7 7-7 7"/>
+              </svg>
+            </a>
+          </div>
+        `);
+        pipeBtn('video-btn', false, 'Upload & Transcribe');
       },
       onFailed(msg) {
         console.error('[video] transcription failed:', msg);
