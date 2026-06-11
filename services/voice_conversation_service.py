@@ -412,9 +412,10 @@ class VoiceConversationService:
         Build a starter CampaignBrief from the confirmed interview blocks
         so /campaign is populated right after the interview completes.
 
-        Never overwrites an existing brief — if one exists (from the CLI
-        run_campaign.py phase or a previous interview), it is kept.
-        Failure here never blocks the interview completion.
+        Real interview data always wins: any existing brief (sample/demo
+        or from a previous interview) is replaced. Only the youtube_url
+        is carried over, since that is added after the brief by the
+        transcript phase. Failure here never blocks interview completion.
         """
         try:
             from models.campaign_brief import CampaignBrief, generate_campaign_id
@@ -424,9 +425,7 @@ class VoiceConversationService:
             )
 
             existing = storage_load_campaign_brief()
-            if existing is not None and existing.is_complete():
-                print("[voice] Campaign brief already exists — not overwriting.")
-                return
+            carried_youtube_url = existing.youtube_url if existing else ""
 
             # Union of all confirmed blocks' extracted fields
             fields: dict = {}
@@ -482,6 +481,7 @@ class VoiceConversationService:
                 success_definition        = transformation,
                 timely_context            = " | ".join(voice_notes),
                 campaign_id               = generate_campaign_id(),
+                youtube_url               = carried_youtube_url,
             )
             storage_save_campaign_brief(brief)
             print("[voice] Starter campaign brief created from interview data.")
