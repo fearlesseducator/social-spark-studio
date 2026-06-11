@@ -1,0 +1,321 @@
+{% extends "base.html" %}
+{% block title %}How It Works — Social Spark Studio{% endblock %}
+
+{% block content %}
+<div class="mx-auto max-w-4xl space-y-10">
+
+  <header>
+    <span class="inline-flex items-center gap-1.5 rounded-full border border-primary-30 bg-primary-soft px-3 py-1 text-xs font-semibold text-accent-foreground">
+      <i data-lucide="book-open" class="h-3 w-3"></i> Guide
+    </span>
+    <h1 class="mt-3 text-3xl font-bold text-foreground sm:text-4xl">How Social Spark Studio Works</h1>
+    <p class="mt-2 max-w-2xl text-muted-foreground">
+      A seven-phase pipeline that turns one YouTube video into a full, voice-aligned social media campaign —
+      end to end, without copy-paste or prompt writing.
+    </p>
+  </header>
+
+  <!-- ── Pipeline overview strip ──────────────────────────────────── -->
+  <div class="card p-6">
+    <h2 class="text-sm font-semibold text-muted-foreground uppercase tracking-widest mb-5">The 7-Phase Pipeline</h2>
+    <ol class="relative border-l border-border space-y-0">
+      {% set phases = [
+        ("dna",        "1", "MessageDNA",          "mic",         "Capture your authentic founder voice through a guided AI interview."),
+        ("brief",      "2", "Campaign Brief",       "clipboard-list","Define campaign goal, offer, CTA, and YouTube source URL."),
+        ("transcript", "3", "YouTube Transcript",   "youtube",     "Extract a timestamped, segment-by-segment transcript from any YouTube video."),
+        ("moments",    "4", "Moment Selection",     "sparkles",    "An AI agent scores every segment and selects the highest-signal quotes and clips."),
+        ("drafts",     "5", "Post Drafts",          "file-text",   "Caption and hashtag agents draft up to 15 posts across three content types."),
+        ("images",     "6", "Image Generation",     "image",       "Google Imagen generates on-brand visuals for every image post, automatically."),
+        ("csv",        "7", "CSV Export",           "download",    "One scheduler-ready CSV — compatible with Buffer, Hypefury, and SparkCircle."),
+      ] %}
+      {% for key, num, label, icon, desc in phases %}
+      <li class="ml-6 pb-8 last:pb-0">
+        <span class="absolute -left-3 flex h-6 w-6 items-center justify-center rounded-full border border-border bg-card text-xs font-bold text-accent-foreground">
+          {{ num }}
+        </span>
+        <div class="flex items-start gap-3 pl-2">
+          <div class="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-primary-soft text-accent-foreground">
+            <i data-lucide="{{ icon }}" class="h-4 w-4"></i>
+          </div>
+          <div>
+            <p class="font-semibold text-foreground">{{ label }}</p>
+            <p class="mt-0.5 text-sm text-muted-foreground">{{ desc }}</p>
+          </div>
+        </div>
+      </li>
+      {% endfor %}
+    </ol>
+  </div>
+
+  <!-- ── Phase detail cards ─────────────────────────────────────────── -->
+
+  <!-- 1. MessageDNA -->
+  <section class="card p-6 space-y-4">
+    <div class="flex items-center gap-3">
+      <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-primary-soft text-accent-foreground">
+        <i data-lucide="mic" class="h-5 w-5"></i>
+      </div>
+      <div>
+        <h2 class="text-lg font-semibold text-foreground">Phase 1 — MessageDNA</h2>
+        <p class="text-xs text-muted-foreground">Run once per founder. Saved forever.</p>
+      </div>
+    </div>
+    <p class="text-sm text-muted-foreground leading-relaxed">
+      MessageDNA is the foundation of every campaign. You answer four blocks of interview questions —
+      audience, offer, voice, and positioning — spoken aloud or typed. A Google Gemini agent listens,
+      reflects back what it heard, and asks you to confirm each block before moving on.
+    </p>
+    <p class="text-sm text-muted-foreground leading-relaxed">
+      The output is a structured JSON file (<code class="text-accent-foreground">message_dna_output.json</code>)
+      containing your voice words, forbidden phrases, content pillars, visual metaphors, and contrarian beliefs.
+      Every downstream agent reads this file to stay in your voice — not a generic AI voice.
+    </p>
+    <div class="rounded-xl border border-border bg-secondary px-4 py-3 text-xs text-muted-foreground space-y-1">
+      <p><span class="font-semibold text-foreground">Input:</span> Voice interview or text answers</p>
+      <p><span class="font-semibold text-foreground">Output:</span> <code class="text-accent-foreground">data/message_dna_output.json</code></p>
+      <p><span class="font-semibold text-foreground">Tech:</span> Google ADK · Gemini 2.5 Flash · Chirp 3 HD TTS · Speech-to-Text v2</p>
+    </div>
+  </section>
+
+  <!-- 2. Campaign Brief -->
+  <section class="card p-6 space-y-4">
+    <div class="flex items-center gap-3">
+      <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-primary-soft text-accent-foreground">
+        <i data-lucide="clipboard-list" class="h-5 w-5"></i>
+      </div>
+      <div>
+        <h2 class="text-lg font-semibold text-foreground">Phase 2 — Campaign Brief</h2>
+        <p class="text-xs text-muted-foreground">One brief per campaign.</p>
+      </div>
+    </div>
+    <p class="text-sm text-muted-foreground leading-relaxed">
+      The Campaign Brief scopes a single campaign: what you're promoting, who it's for, what the CTA is,
+      and which YouTube video to draw content from. A Gemini-powered brief agent interviews you through
+      five structured questions and writes the brief for you.
+    </p>
+    <div class="rounded-xl border border-border bg-secondary px-4 py-3 text-xs text-muted-foreground space-y-1">
+      <p><span class="font-semibold text-foreground">Input:</span> Campaign goal, offer, audience, CTA, YouTube URL</p>
+      <p><span class="font-semibold text-foreground">Output:</span> <code class="text-accent-foreground">data/campaign_brief.json</code></p>
+      <p><span class="font-semibold text-foreground">Tech:</span> Google ADK · Gemini 2.5 Flash</p>
+    </div>
+  </section>
+
+  <!-- 3. YouTube Transcript -->
+  <section class="card p-6 space-y-4">
+    <div class="flex items-center gap-3">
+      <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-primary-soft text-accent-foreground">
+        <i data-lucide="youtube" class="h-5 w-5"></i>
+      </div>
+      <div>
+        <h2 class="text-lg font-semibold text-foreground">Phase 3 — YouTube Transcript</h2>
+        <p class="text-xs text-muted-foreground">Any public YouTube video, any length.</p>
+      </div>
+    </div>
+    <p class="text-sm text-muted-foreground leading-relaxed">
+      Paste a YouTube URL and the transcript runner fetches the full caption track, segments it into
+      timestamped chunks, and saves a structured JSON file. Each segment records the text, start time,
+      and word count so downstream agents can generate precise timestamp URLs back to the source video.
+    </p>
+    <div class="rounded-xl border border-border bg-secondary px-4 py-3 text-xs text-muted-foreground space-y-1">
+      <p><span class="font-semibold text-foreground">Input:</span> YouTube URL (from Campaign Brief)</p>
+      <p><span class="font-semibold text-foreground">Output:</span> <code class="text-accent-foreground">data/transcript_output.json</code></p>
+      <p><span class="font-semibold text-foreground">Tech:</span> youtube-transcript-api · FastAPI background task</p>
+    </div>
+  </section>
+
+  <!-- 4. Moment Selection -->
+  <section class="card p-6 space-y-4">
+    <div class="flex items-center gap-3">
+      <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-primary-soft text-accent-foreground">
+        <i data-lucide="sparkles" class="h-5 w-5"></i>
+      </div>
+      <div>
+        <h2 class="text-lg font-semibold text-foreground">Phase 4 — Moment Selection</h2>
+        <p class="text-xs text-muted-foreground">AI-scored, founder-voice-filtered.</p>
+      </div>
+    </div>
+    <p class="text-sm text-muted-foreground leading-relaxed">
+      A Gemini agent reads the full transcript against your MessageDNA and Campaign Brief, then scores
+      every segment for social worthiness: Is it quotable? Does it match a content pillar? Is there a
+      strong hook? It selects up to 9 high-signal moments and explains why each one works.
+    </p>
+    <p class="text-sm text-muted-foreground leading-relaxed">
+      Each moment includes a verbatim quote, a YouTube timestamp URL, a platform recommendation,
+      and a note on why it resonates — the raw material the caption agent works from in Phase 5.
+    </p>
+    <div class="rounded-xl border border-border bg-secondary px-4 py-3 text-xs text-muted-foreground space-y-1">
+      <p><span class="font-semibold text-foreground">Input:</span> transcript + MessageDNA + Campaign Brief</p>
+      <p><span class="font-semibold text-foreground">Output:</span> <code class="text-accent-foreground">data/moments_output.json</code></p>
+      <p><span class="font-semibold text-foreground">Tech:</span> Google ADK · Gemini 2.5 Flash · ~30–90 s</p>
+    </div>
+  </section>
+
+  <!-- 5. Post Drafts -->
+  <section class="card p-6 space-y-4">
+    <div class="flex items-center gap-3">
+      <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-primary-soft text-accent-foreground">
+        <i data-lucide="file-text" class="h-5 w-5"></i>
+      </div>
+      <div>
+        <h2 class="text-lg font-semibold text-foreground">Phase 5 — Post Drafts</h2>
+        <p class="text-xs text-muted-foreground">Two agents. Up to 15 posts. One pass.</p>
+      </div>
+    </div>
+    <p class="text-sm text-muted-foreground leading-relaxed">
+      Two agents run back-to-back. The <strong class="text-foreground">Caption Agent</strong> drafts up to 15 posts across three content types:
+      video clips (built from transcript moments), image posts (built from MessageDNA content pillars),
+      and text quotes (pulled from strong transcript language). Every caption is written in your confirmed voice
+      using your phrases-to-use list and avoiding your phrases-to-avoid list.
+    </p>
+    <p class="text-sm text-muted-foreground leading-relaxed">
+      The <strong class="text-foreground">Hashtag Agent</strong> then runs a second pass and assigns
+      three tiers of hashtags to every post: broad reach, niche audience, and brand-specific — all
+      sourced from your MessageDNA content pillars and audience profile.
+    </p>
+    <div class="rounded-xl border border-border bg-secondary px-4 py-3 text-xs text-muted-foreground space-y-1">
+      <p><span class="font-semibold text-foreground">Input:</span> moments + MessageDNA + Campaign Brief</p>
+      <p><span class="font-semibold text-foreground">Output:</span> <code class="text-accent-foreground">data/posts_output.json</code></p>
+      <p><span class="font-semibold text-foreground">Tech:</span> Google ADK · Gemini 2.5 Flash · 2 agents · ~60 s</p>
+    </div>
+  </section>
+
+  <!-- 6. Image Generation -->
+  <section class="card p-6 space-y-4">
+    <div class="flex items-center gap-3">
+      <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-primary-soft text-accent-foreground">
+        <i data-lucide="image" class="h-5 w-5"></i>
+      </div>
+      <div>
+        <h2 class="text-lg font-semibold text-foreground">Phase 6 — Image Generation</h2>
+        <p class="text-xs text-muted-foreground">~20 seconds per image.</p>
+      </div>
+    </div>
+    <p class="text-sm text-muted-foreground leading-relaxed">
+      For every <code class="text-accent-foreground">image_post</code> in your campaign, the pipeline
+      sends a visual prompt — built from your MessageDNA visual metaphors and the post's content pillar —
+      to Google Imagen. The generated images are saved locally and served directly in the UI via
+      <code class="text-accent-foreground">/api/data/images/</code>.
+    </p>
+    <p class="text-sm text-muted-foreground leading-relaxed">
+      If Imagen returns a safety block on any image, the runner automatically falls back to
+      <code class="text-accent-foreground">imagen-4.0-fast-generate-001</code> before marking the post as failed.
+      You can retry individual failed posts from the Posts page.
+    </p>
+    <div class="rounded-xl border border-border bg-secondary px-4 py-3 text-xs text-muted-foreground space-y-1">
+      <p><span class="font-semibold text-foreground">Input:</span> posts_output.json (image_post entries only)</p>
+      <p><span class="font-semibold text-foreground">Output:</span> <code class="text-accent-foreground">data/generated_images/*.png</code></p>
+      <p><span class="font-semibold text-foreground">Tech:</span> Google Imagen 4.0 · Vertex AI · ~20 s/image</p>
+    </div>
+  </section>
+
+  <!-- 7. CSV Export -->
+  <section class="card p-6 space-y-4">
+    <div class="flex items-center gap-3">
+      <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-primary-soft text-accent-foreground">
+        <i data-lucide="download" class="h-5 w-5"></i>
+      </div>
+      <div>
+        <h2 class="text-lg font-semibold text-foreground">Phase 7 — CSV Export</h2>
+        <p class="text-xs text-muted-foreground">Scheduler-ready in one click.</p>
+      </div>
+    </div>
+    <p class="text-sm text-muted-foreground leading-relaxed">
+      The export runner writes every post to a single CSV file with columns matching the import format
+      for Buffer, Hypefury, and SparkCircle. Video clip posts include a YouTube timestamp URL as the
+      media asset. Image posts reference the generated image path. Text quote posts export clean.
+    </p>
+    <div class="rounded-xl border border-border bg-secondary px-4 py-3 text-xs text-muted-foreground space-y-1">
+      <p><span class="font-semibold text-foreground">Input:</span> posts_output.json</p>
+      <p><span class="font-semibold text-foreground">Output:</span> <code class="text-accent-foreground">data/social-spark-&lt;campaign&gt;-&lt;date&gt;.csv</code></p>
+      <p><span class="font-semibold text-foreground">Columns:</span> post_number, platform, content_type, caption, hashtags, image_url, video_url, CTA</p>
+    </div>
+  </section>
+
+  <!-- ── Multi-agent section ───────────────────────────────────────── -->
+  <section class="card p-6 space-y-5">
+    <div class="flex items-center gap-3">
+      <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-primary-soft text-accent-foreground">
+        <i data-lucide="cpu" class="h-5 w-5"></i>
+      </div>
+      <h2 class="text-lg font-semibold text-foreground">Powered by a multi-agent ADK workflow</h2>
+    </div>
+    <p class="text-sm text-muted-foreground leading-relaxed">
+      Social Spark Studio is built on the <strong class="text-foreground">Google Agent Development Kit (ADK)</strong>
+      — a framework for composing specialised AI agents into coordinated pipelines. Rather than sending one large
+      prompt to a single model, each phase is handled by a dedicated agent with a specific role, instruction set,
+      and output schema.
+    </p>
+
+    <!-- Agent table -->
+    <div class="overflow-x-auto rounded-xl border border-border">
+      <table class="w-full text-sm">
+        <thead>
+          <tr class="border-b border-border bg-secondary">
+            <th class="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wide">Agent</th>
+            <th class="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wide">Role</th>
+            <th class="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wide">Model</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-border">
+          {% set agents = [
+            ("Interview Agent",  "Conducts the structured MessageDNA voice interview across 4 blocks", "Gemini 2.5 Flash"),
+            ("Brief Agent",      "Extracts campaign goal, offer, audience, CTA, and YouTube URL",     "Gemini 2.5 Flash"),
+            ("Moments Agent",    "Scores transcript segments and selects the highest-signal moments",  "Gemini 2.5 Flash"),
+            ("Caption Agent",    "Drafts up to 15 posts in the founder's confirmed voice",            "Gemini 2.5 Flash"),
+            ("Hashtag Agent",    "Assigns 3-tier hashtag sets to every post",                         "Gemini 2.5 Flash Lite"),
+          ] %}
+          {% for name, role, model in agents %}
+          <tr class="hover:bg-secondary/50 transition-colors">
+            <td class="px-4 py-3 font-medium text-foreground whitespace-nowrap">{{ name }}</td>
+            <td class="px-4 py-3 text-muted-foreground">{{ role }}</td>
+            <td class="px-4 py-3 text-accent-foreground whitespace-nowrap font-mono text-xs">{{ model }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <p class="text-sm text-muted-foreground leading-relaxed">
+      Each agent runs in a fresh <code class="text-accent-foreground">InMemoryRunner</code> session,
+      receives only the context it needs, and returns a structured output block the next agent or
+      pipeline step can consume. This keeps agents focused, outputs predictable, and failures isolated
+      to a single phase rather than corrupting the whole run.
+    </p>
+
+    <!-- Tech stack chips -->
+    <div>
+      <p class="mb-3 text-xs font-semibold text-muted-foreground uppercase tracking-wide">Full tech stack</p>
+      <div class="flex flex-wrap gap-2">
+        {% for chip in [
+          "Google ADK v2.2",
+          "Gemini 2.5 Flash",
+          "Google Imagen 4.0",
+          "Cloud Speech-to-Text v2 Chirp 3",
+          "Cloud Text-to-Speech Chirp 3 HD",
+          "Vertex AI",
+          "FastAPI",
+          "Python 3.14",
+          "youtube-transcript-api",
+        ] %}
+        <span class="inline-flex items-center rounded-full border border-border bg-secondary px-3 py-1 text-xs font-medium text-foreground">
+          {{ chip }}
+        </span>
+        {% endfor %}
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Footer nav ────────────────────────────────────────────────── -->
+  <div class="flex flex-wrap gap-3 pb-2">
+    <a href="/dashboard" class="btn-primary">
+      Go to Dashboard <i data-lucide="arrow-right" class="h-4 w-4"></i>
+    </a>
+    <a href="/voice" class="btn-secondary">Start MessageDNA</a>
+  </div>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>lucide.createIcons();</script>
+{% endblock %}

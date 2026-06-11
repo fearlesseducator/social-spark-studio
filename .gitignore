@@ -1,0 +1,27 @@
+# ── Secrets — never commit ────────────────────────────────────────
+.env
+.env.*
+!.env.example
+keys/
+*service-account*.json
+*credentials*.json
+
+# ── Generated campaign data (real founder content) ────────────────
+data/*.json
+data/*.csv
+data/generated_images/
+# Keep the safe sample files for demo/docs
+!data/sample_*.json
+
+# ── Python ─────────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+
+# ── OS / editor noise ──────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

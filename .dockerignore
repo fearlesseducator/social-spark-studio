@@ -1,0 +1,27 @@
+# Secrets — never bake into the image
+.env
+.env.*
+keys/
+*service-account*.json
+*credentials*.json
+
+# Generated campaign data (real founder content)
+data/*.json
+data/*.csv
+data/generated_images/
+!data/sample_*.json
+
+# Git + caches
+.git/
+.gitignore
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# Local-only files
+docs/
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

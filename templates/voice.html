@@ -1,0 +1,364 @@
+{% extends "base.html" %}
+{% block title %}Voice Studio — Social Spark Studio{% endblock %}
+
+{% block head %}
+<style>
+  /* ── Recording button states ─────────────────────────────── */
+  #rec-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.625rem;
+    padding: 0.875rem 1.75rem;
+    border-radius: 9999px;
+    font-size: 0.9375rem;
+    font-weight: 700;
+    border: none;
+    cursor: pointer;
+    transition: background-color 0.15s, opacity 0.15s, transform 0.1s;
+    min-width: 14rem;
+  }
+  #rec-btn.state-start {
+    background-color: var(--primary);
+    color: var(--primary-foreground);
+    box-shadow: var(--shadow-glow);
+  }
+  #rec-btn.state-start:hover { opacity: 0.92; transform: translateY(-1px); }
+  #rec-btn.state-listening {
+    background-color: var(--destructive);
+    color: var(--destructive-foreground);
+    animation: pulse-rec 1.8s ease-in-out infinite;
+  }
+  #rec-btn.state-processing {
+    background-color: var(--muted);
+    color: var(--muted-foreground);
+    cursor: not-allowed;
+  }
+  #rec-btn.state-again {
+    background-color: var(--secondary);
+    color: var(--foreground);
+    border: 1px solid var(--border);
+  }
+  #rec-btn.state-again:hover { background-color: var(--muted); }
+
+  @keyframes pulse-rec {
+    0%, 100% { opacity: 1; box-shadow: 0 0 0 0 oklch(0.6 0.22 25 / 0.4); }
+    50%       { opacity: 0.85; box-shadow: 0 0 0 8px oklch(0.6 0.22 25 / 0); }
+  }
+
+  /* ── Conversation history item ───────────────────────────── */
+  .turn-founder { border-left: 3px solid var(--primary); }
+  .turn-agent   { border-left: 3px solid var(--accent-foreground); }
+
+  /* ── Block summary card (slides in) ─────────────────────── */
+  #block-summary-card {
+    transition: opacity 0.2s, transform 0.2s;
+  }
+  #block-summary-card.hidden {
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  /* ── Error banner ─────────────────────────────────────────── */
+  #error-banner {
+    transition: opacity 0.2s;
+  }
+
+  /* ── Spinner ─────────────────────────────────────────────── */
+  .spin {
+    animation: spin 0.8s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="mx-auto max-w-6xl space-y-6" id="voice-app">
+
+  <!-- ── Page header ───────────────────────────────────────── -->
+  <header>
+    <span class="inline-flex items-center gap-1.5 rounded-full border border-primary-30 bg-primary-soft px-3 py-1 text-xs font-semibold text-accent-foreground">
+      <i data-lucide="sparkles" class="h-3 w-3"></i> Voice Conversation Studio
+    </span>
+    <h1 class="mt-3 text-3xl font-bold text-foreground sm:text-4xl">
+      Talk it out. We'll capture your MessageDNA.
+    </h1>
+    <p class="mt-2 max-w-2xl text-muted-foreground">
+      Speak or type through 4 blocks. Spark asks one question at a time,
+      listens, and extracts the fields that shape every post you generate.
+    </p>
+  </header>
+
+  <!-- ── Text-only mode banner (shown by JS when STT unavailable) ── -->
+  <div id="text-only-banner" class="hidden rounded-2xl border border-primary-30 bg-primary-soft p-4">
+    <div class="flex items-start gap-3">
+      <i data-lucide="info" class="h-4 w-4 text-accent-foreground mt-0.5 shrink-0"></i>
+      <p class="text-sm text-accent-foreground">
+        <strong>Text mode active.</strong>
+        Voice requires <code>GOOGLE_CLOUD_PROJECT</code> in your <code>.env</code>.
+        You can still complete the full interview by typing below.
+      </p>
+    </div>
+  </div>
+
+  <!-- ── Error banner (hidden until JS shows it) ─────────────── -->
+  <div id="error-banner" class="hidden rounded-2xl border border-destructive-30 bg-destructive/10 p-4">
+    <div class="flex items-start gap-3">
+      <i data-lucide="alert-triangle" class="h-4 w-4 text-destructive mt-0.5 shrink-0"></i>
+      <p id="error-text" class="text-sm text-destructive font-medium"></p>
+    </div>
+  </div>
+
+  <!-- ── Four-block progress ──────────────────────────────────── -->
+  <section class="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+
+    <div id="block-1" class="rounded-2xl border p-4 shadow-soft border-border bg-card">
+      <div class="flex items-center justify-between">
+        <span id="block-1-num" class="flex h-7 w-7 items-center justify-center rounded-full text-xs font-bold step-todo">1</span>
+        <span id="block-1-status" class="text-10 font-bold uppercase tracking-wide text-muted-foreground">Up next</span>
+      </div>
+      <h3 class="mt-3 text-sm font-semibold text-foreground">Audience &amp; Pain</h3>
+      <p class="text-xs text-muted-foreground">Who you serve &amp; their core problem</p>
+    </div>
+
+    <div id="block-2" class="rounded-2xl border p-4 shadow-soft border-border bg-card">
+      <div class="flex items-center justify-between">
+        <span id="block-2-num" class="flex h-7 w-7 items-center justify-center rounded-full text-xs font-bold step-todo">2</span>
+        <span id="block-2-status" class="text-10 font-bold uppercase tracking-wide text-muted-foreground">Up next</span>
+      </div>
+      <h3 class="mt-3 text-sm font-semibold text-foreground">Offer &amp; Transformation</h3>
+      <p class="text-xs text-muted-foreground">What you create for your audience</p>
+    </div>
+
+    <div id="block-3" class="rounded-2xl border p-4 shadow-soft border-border bg-card">
+      <div class="flex items-center justify-between">
+        <span id="block-3-num" class="flex h-7 w-7 items-center justify-center rounded-full text-xs font-bold step-todo">3</span>
+        <span id="block-3-status" class="text-10 font-bold uppercase tracking-wide text-muted-foreground">Up next</span>
+      </div>
+      <h3 class="mt-3 text-sm font-semibold text-foreground">Campaign Goal &amp; Voice</h3>
+      <p class="text-xs text-muted-foreground">Platforms, tone, content pillars</p>
+    </div>
+
+    <div id="block-4" class="rounded-2xl border p-4 shadow-soft border-border bg-card">
+      <div class="flex items-center justify-between">
+        <span id="block-4-num" class="flex h-7 w-7 items-center justify-center rounded-full text-xs font-bold step-todo">4</span>
+        <span id="block-4-status" class="text-10 font-bold uppercase tracking-wide text-muted-foreground">Up next</span>
+      </div>
+      <h3 class="mt-3 text-sm font-semibold text-foreground">Founder Positioning</h3>
+      <p class="text-xs text-muted-foreground">Origin, beliefs, visual identity</p>
+    </div>
+
+  </section>
+
+  <!-- ── Main two-column layout ────────────────────────────── -->
+  <div class="grid gap-6 lg:grid-cols-[1.4fr_1fr]">
+
+    <!-- LEFT: Conversation -->
+    <div class="space-y-4">
+
+      <!-- 1. Agent Question card ─────────────────────────── -->
+      <section class="card p-5" id="agent-question-card">
+        <div class="flex items-start gap-3">
+          <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground">
+            <i data-lucide="bot" class="h-5 w-5"></i>
+          </div>
+          <div class="flex-1 min-w-0">
+            <p class="text-xs font-bold uppercase tracking-wide text-muted-foreground mb-1">
+              Social Spark Studio asks
+            </p>
+            <p id="agent-question-text" class="text-base text-foreground leading-relaxed">
+              Let's capture the message behind your content. Who is your ideal audience, and what problem are they trying to solve right now?
+            </p>
+          </div>
+        </div>
+        <!-- Hidden audio player — auto-plays TTS response -->
+        <audio id="audio-player" class="mt-3 w-full hidden" controls></audio>
+      </section>
+
+      <!-- 2. Recording controls ──────────────────────────── -->
+      <section class="card p-5">
+        <div class="flex flex-col items-center gap-4 pb-5 border-b border-border">
+
+          <!-- Mic icon indicator (visual only — the button is below) -->
+          <div id="mic-indicator" class="flex h-16 w-16 items-center justify-center rounded-full bg-primary-soft text-accent-foreground">
+            <i data-lucide="mic" class="h-8 w-8" id="mic-indicator-icon"></i>
+          </div>
+
+          <!-- THE recording button — single, clear state machine -->
+          <button
+            type="button"
+            id="rec-btn"
+            class="state-start"
+            onclick="handleRecordClick()"
+          >
+            <i data-lucide="mic" class="h-5 w-5" id="rec-btn-icon"></i>
+            <span id="rec-btn-label">Start Recording</span>
+          </button>
+
+          <p id="rec-hint" class="text-xs text-muted-foreground text-center">
+            Click once to start. Click again to stop and send your answer.
+          </p>
+        </div>
+
+        <!-- 4. Founder transcript (hidden until STT returns) -->
+        <div id="founder-transcript-area" class="hidden mt-4 rounded-xl border-l-4 border-primary bg-primary-soft p-4">
+          <p class="text-xs font-bold uppercase tracking-wide text-accent-foreground mb-1.5">
+            You said
+          </p>
+          <p id="founder-transcript-text" class="text-sm text-foreground leading-relaxed"></p>
+        </div>
+
+        <!-- 5. AI Response area (hidden until backend responds) -->
+        <div id="ai-response-area" class="hidden mt-4 rounded-xl border-l-4 border-accent-foreground bg-secondary p-4">
+          <p class="text-xs font-bold uppercase tracking-wide text-muted-foreground mb-1.5">
+            Social Spark Studio says
+          </p>
+          <p id="ai-response-text" class="text-sm text-foreground leading-relaxed"></p>
+        </div>
+
+        <!-- 7. Text fallback ────────────────────────────── -->
+        <div class="mt-4">
+          <p class="text-xs text-muted-foreground mb-2 font-medium">Or type your answer:</p>
+          <form id="text-form" class="flex items-center gap-2 rounded-xl border border-input bg-background p-2" onsubmit="submitText(event)">
+            <input
+              id="text-input"
+              type="text"
+              placeholder="Type your answer here…"
+              class="flex-1 bg-transparent px-2 py-1.5 text-sm outline-none placeholder:text-muted-foreground text-foreground"
+              autocomplete="off"
+            />
+            <button
+              type="submit"
+              id="text-send-btn"
+              class="inline-flex items-center gap-1.5 rounded-lg bg-foreground px-3 py-1.5 text-xs font-semibold text-background transition hover:opacity-90"
+            >
+              Send <i data-lucide="send" class="h-3 w-3"></i>
+            </button>
+          </form>
+        </div>
+      </section>
+
+      <!-- Start interview button (shown until interview begins) -->
+      <div id="start-area" class="flex items-center gap-4">
+        <button
+          type="button"
+          id="start-btn"
+          onclick="startInterview()"
+          class="btn-primary"
+        >
+          <i data-lucide="play" class="h-4 w-4"></i> Start Interview
+        </button>
+        <div class="flex items-center gap-2">
+          <svg id="spinner" class="hidden h-4 w-4 spin text-primary" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+          </svg>
+          <span id="status-text" class="text-xs text-muted-foreground">Not started — click Start Interview to begin</span>
+        </div>
+      </div>
+
+      <!-- 8. Conversation history ─────────────────────────── -->
+      <section class="card p-5" id="history-section">
+        <h2 class="text-xs font-bold uppercase tracking-wide text-muted-foreground mb-3 flex items-center gap-2">
+          <i data-lucide="message-circle" class="h-3.5 w-3.5"></i> Conversation history
+        </h2>
+        <div id="history-list" class="space-y-3 max-h-72 overflow-y-auto pr-1">
+          <p class="text-xs text-muted-foreground italic">Your conversation will appear here turn by turn.</p>
+        </div>
+      </section>
+
+    </div>
+
+    <!-- RIGHT: Block summary + extracted fields ─────────── -->
+    <aside class="space-y-4">
+
+      <!-- 9/10. Block summary card (always visible, updates per block) -->
+      <section class="card p-5" id="block-summary-card">
+        <div class="flex items-center justify-between mb-3">
+          <h2 class="text-sm font-bold uppercase tracking-wide text-foreground">
+            Block summary
+          </h2>
+          <span id="block-summary-badge" class="rounded-full bg-primary-soft px-2 py-0.5 text-10 font-bold uppercase tracking-wide text-accent-foreground">
+            Waiting
+          </span>
+        </div>
+        <p class="text-xs text-muted-foreground mb-4">
+          Fields extracted from the current block conversation.
+        </p>
+
+        <dl id="extracted-fields" class="space-y-2">
+          <div class="rounded-xl border border-border bg-secondary p-3">
+            <dt class="text-11 font-bold uppercase tracking-wide text-muted-foreground">Status</dt>
+            <dd class="mt-1 text-sm text-muted-foreground italic">Start the interview to see extracted fields here.</dd>
+          </div>
+        </dl>
+
+        <!-- 11. Confirm block button — shown when awaiting confirmation -->
+        <div id="confirm-block-area" class="hidden mt-4 space-y-2">
+          <div class="rounded-xl border border-primary-30 bg-primary-soft p-3 text-xs text-accent-foreground">
+            <strong>Review the summary above.</strong>
+            If it sounds right, confirm to save this block and continue.
+          </div>
+          <button
+            type="button"
+            id="confirm-btn"
+            onclick="confirmBlock()"
+            class="btn-success w-full"
+          >
+            <i data-lucide="check-circle-2" class="h-4 w-4"></i>
+            Confirm this block &amp; continue
+          </button>
+        </div>
+
+        <p id="block-progress-text" class="mt-3 text-center text-11 text-muted-foreground">
+          0 of 4 blocks confirmed
+        </p>
+      </section>
+
+      <!-- Why this matters tip -->
+      <section class="rounded-2xl border border-primary-30 bg-primary-soft p-5">
+        <p class="text-xs font-bold uppercase tracking-wide text-accent-foreground">Why this matters</p>
+        <p class="mt-2 text-sm text-foreground">
+          Every post Spark drafts is filtered through these fields — so your
+          campaign sounds like you, not like a generic AI caption.
+        </p>
+      </section>
+
+      <!-- Interview complete banner (hidden until all 4 blocks done) -->
+      <div id="complete-banner" class="hidden rounded-2xl border border-success-40 bg-success-15 p-5">
+        <div class="flex items-center gap-2 mb-2">
+          <i data-lucide="check-circle-2" class="h-5 w-5 text-success-foreground shrink-0"></i>
+          <p class="text-sm font-semibold text-success-foreground">MessageDNA complete!</p>
+        </div>
+        <p class="text-xs text-success-foreground mb-4">
+          All 4 blocks confirmed. Your MessageDNA has been saved and is ready
+          to shape every post in your campaign.
+        </p>
+        <a href="/campaign" class="btn-primary w-full justify-center text-xs py-2.5">
+          Continue to Campaign Brief
+          <i data-lucide="arrow-right" class="h-3.5 w-3.5"></i>
+        </a>
+      </div>
+
+    </aside>
+  </div>
+
+  <!-- Bottom nav -->
+  <div class="flex flex-wrap gap-3 border-t border-border pt-6">
+    <a href="/campaign" class="btn-primary">
+      Continue to Campaign Brief <i data-lucide="arrow-right" class="h-4 w-4"></i>
+    </a>
+    <a href="/messagedna" class="btn-secondary">Review MessageDNA</a>
+  </div>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="/static/js/voice.js"></script>
+<script>
+  window.VOICE_STATUS = {{ voice_status | tojson }};
+  lucide.createIcons();
+  initVoiceStudio();
+</script>
+{% endblock %}

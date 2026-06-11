@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+{% block title %}MessageDNA — Social Spark Studio{% endblock %}
+
+{% block content %}
+<div class="mx-auto max-w-4xl space-y-8">
+
+  <header>
+    <span class="inline-flex items-center gap-1.5 rounded-full border border-primary-30 bg-primary-soft px-3 py-1 text-xs font-semibold text-accent-foreground">
+      <i data-lucide="dna" class="h-3 w-3"></i> MessageDNA
+    </span>
+    <h1 class="mt-3 text-3xl font-bold text-foreground sm:text-4xl">Your founder identity</h1>
+    <p class="mt-2 text-muted-foreground">
+      The voice profile that shapes every post this engine generates.
+    </p>
+  </header>
+
+  {% if dna %}
+
+  {% macro section(title, icon, content_dict) %}
+  <div class="card p-6">
+    <div class="flex items-center gap-2 border-b border-border pb-4 mb-4">
+      <div class="flex h-9 w-9 items-center justify-center rounded-xl bg-primary-soft text-accent-foreground">
+        <i data-lucide="{{ icon }}" class="h-4 w-4"></i>
+      </div>
+      <h2 class="text-base font-semibold text-foreground">{{ title }}</h2>
+    </div>
+    <dl class="grid gap-3 sm:grid-cols-2">
+      {% for key, value in content_dict.items() %}
+      {% if value %}
+      <div class="rounded-xl border border-border bg-secondary p-3">
+        <dt class="text-11 font-bold uppercase tracking-wide text-muted-foreground">{{ key | replace("_", " ") | title }}</dt>
+        <dd class="mt-1 text-sm text-foreground">
+          {% if value is iterable and value is not string %}
+            {{ value | join(', ') }}
+          {% else %}
+            {{ value }}
+          {% endif %}
+        </dd>
+      </div>
+      {% endif %}
+      {% endfor %}
+    </dl>
+  </div>
+  {% endmacro %}
+
+  {{ section("Founder Identity", "user", dna.get("founder_identity", {})) }}
+  {{ section("Audience Profile", "users", dna.get("audience_profile", {})) }}
+  {{ section("Voice Profile", "mic", dna.get("voice_profile", {})) }}
+  {{ section("Founder Positioning", "star", dna.get("founder_positioning", {})) }}
+  {{ section("Content Direction", "layers", dna.get("content_direction", {})) }}
+
+  <div class="flex flex-wrap gap-3">
+    <a href="/voice" class="btn-secondary">
+      <i data-lucide="refresh-cw" class="h-4 w-4"></i> Re-do MessageDNA Interview
+    </a>
+    <a href="/campaign" class="btn-primary">
+      Continue to Campaign <i data-lucide="arrow-right" class="h-4 w-4"></i>
+    </a>
+  </div>
+
+  {% else %}
+  <!-- No data yet -->
+  <div class="card p-10 text-center">
+    <div class="flex h-16 w-16 items-center justify-center rounded-full bg-primary-soft text-accent-foreground mx-auto">
+      <i data-lucide="dna" class="h-8 w-8"></i>
+    </div>
+    <h2 class="mt-4 text-lg font-semibold text-foreground">No MessageDNA yet</h2>
+    <p class="mt-2 text-sm text-muted-foreground max-w-sm mx-auto">
+      Complete the Voice Conversation Studio to capture your founder voice,
+      or run <code class="text-accent-foreground">python run_interview.py</code> from the CLI.
+    </p>
+    <a href="/voice" class="btn-primary mt-6 inline-flex">
+      <i data-lucide="mic" class="h-4 w-4"></i> Start Voice Interview
+    </a>
+  </div>
+  {% endif %}
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>lucide.createIcons();</script>
+{% endblock %}

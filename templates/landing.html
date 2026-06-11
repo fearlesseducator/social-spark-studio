@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Social Spark Studio — Campaigns that sound like you</title>
+  <meta name="description" content="Capture your founder MessageDNA, then turn long-form video into aligned post drafts, image prompts, and scheduler-ready CSV files." />
+  <link rel="stylesheet" href="/static/css/app.css" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            background:    'var(--background)',
+            foreground:    'var(--foreground)',
+            card:          'var(--card)',
+            primary:       { DEFAULT: 'var(--primary)', foreground: 'var(--primary-foreground)', soft: 'var(--primary-soft)' },
+            secondary:     { DEFAULT: 'var(--secondary)', foreground: 'var(--secondary-foreground)' },
+            muted:         { DEFAULT: 'var(--muted)', foreground: 'var(--muted-foreground)' },
+            accent:        { DEFAULT: 'var(--accent)', foreground: 'var(--accent-foreground)' },
+            success:       { DEFAULT: 'var(--success)', foreground: 'var(--success-foreground)' },
+            warning:       { DEFAULT: 'var(--warning)', foreground: 'var(--warning-foreground)' },
+            border:        'var(--border)',
+          },
+          fontFamily: {
+            sans:    ['Inter', 'system-ui', 'sans-serif'],
+            display: ['"Plus Jakarta Sans"', 'Inter', 'system-ui', 'sans-serif'],
+          },
+          borderRadius: {
+            sm: 'calc(var(--radius) - 4px)', lg: 'var(--radius)',
+            xl: 'calc(var(--radius) + 4px)', '2xl': 'calc(var(--radius) + 8px)', '3xl': 'calc(var(--radius) + 12px)',
+          },
+          boxShadow: { soft: 'var(--shadow-soft)', glow: 'var(--shadow-glow)' },
+        }
+      }
+    }
+  </script>
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+</head>
+<body class="min-h-screen bg-background">
+
+  <!-- Header -->
+  <header class="sticky top-0 z-40 border-b border-border-60 bg-background/80 backdrop-blur-sm">
+    <div class="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
+      <a href="/" class="logo-text text-lg">Social <span>Spark</span> Studio</a>
+      <nav class="hidden items-center gap-8 md:flex">
+        <a href="#features" class="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">Features</a>
+        <a href="#how" class="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">How It Works</a>
+        <a href="#founders" class="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">For Founders</a>
+        <a href="/login" class="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">Login</a>
+      </nav>
+      <a href="/login" class="inline-flex items-center gap-1.5 rounded-full bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground shadow-glow transition hover:opacity-90">
+        Start Free <i data-lucide="arrow-right" class="h-3.5 w-3.5"></i>
+      </a>
+    </div>
+  </header>
+
+  <!-- Hero -->
+  <section class="relative overflow-hidden">
+    <div aria-hidden class="pointer-events-none absolute inset-0 -z-10 hero-gradient"></div>
+    <div class="mx-auto max-w-5xl px-4 pb-20 pt-16 text-center sm:px-6 sm:pt-24 lg:pb-28 lg:pt-32">
+      <span class="inline-flex items-center gap-1.5 rounded-full border border-primary-30 bg-primary-soft px-3 py-1 text-xs font-semibold text-accent-foreground">
+        <i data-lucide="dna" class="h-3 w-3"></i> MessageDNA-powered content for founders
+      </span>
+      <h1 class="mt-6 text-4xl font-extrabold tracking-tight text-foreground sm:text-5xl lg:text-6xl">
+        Turn one founder video into a campaign that actually sounds like you.
+      </h1>
+      <p class="mx-auto mt-6 max-w-2xl text-lg leading-relaxed text-muted-foreground">
+        Social Spark Studio captures your founder voice through a guided MessageDNA interview,
+        then uses your YouTube videos to generate aligned post drafts, video moments, image prompts,
+        and scheduler-ready CSV files.
+      </p>
+      <div class="mt-10 flex flex-wrap items-center justify-center gap-3">
+        <a href="/login" class="inline-flex items-center gap-2 rounded-full bg-primary px-6 py-3 text-base font-semibold text-primary-foreground shadow-glow transition hover:opacity-90">
+          Start Creating <i data-lucide="arrow-right" class="h-4 w-4"></i>
+        </a>
+        <a href="#how" class="inline-flex items-center gap-2 rounded-full border border-border bg-card px-6 py-3 text-base font-semibold text-foreground transition hover:bg-secondary">
+          See How It Works
+        </a>
+      </div>
+
+      <!-- Hero preview card -->
+      <div class="relative mx-auto mt-16 max-w-4xl">
+        <div class="rounded-2xl border border-border bg-card p-3 shadow-soft">
+          <div class="rounded-xl bg-secondary p-6">
+            <div class="flex items-center gap-2 border-b border-border pb-3">
+              <div class="h-2.5 w-2.5 rounded-full bg-destructive/60"></div>
+              <div class="h-2.5 w-2.5 rounded-full bg-warning/70"></div>
+              <div class="h-2.5 w-2.5 rounded-full bg-success/70"></div>
+              <div class="ml-3 rounded-md bg-background px-3 py-1 text-xs text-muted-foreground">
+                social-spark-campaign.csv
+              </div>
+            </div>
+            <div class="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-3">
+              <div class="rounded-xl bg-card p-4 text-left shadow-sm">
+                <div class="mb-2 h-1.5 w-10 rounded-full bg-primary"></div>
+                <div class="text-2xl font-bold text-foreground">8</div>
+                <div class="text-xs text-muted-foreground">Video clips</div>
+              </div>
+              <div class="rounded-xl bg-card p-4 text-left shadow-sm">
+                <div class="mb-2 h-1.5 w-10 rounded-full bg-foreground"></div>
+                <div class="text-2xl font-bold text-foreground">3</div>
+                <div class="text-xs text-muted-foreground">Image posts</div>
+              </div>
+              <div class="rounded-xl bg-card p-4 text-left shadow-sm">
+                <div class="mb-2 h-1.5 w-10 rounded-full bg-success"></div>
+                <div class="text-2xl font-bold text-foreground">1</div>
+                <div class="text-xs text-muted-foreground">Quote posts</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Built for founders -->
+  <section id="founders" class="border-y border-border-60 bg-secondary/40 py-20">
+    <div class="mx-auto max-w-4xl px-4 text-center sm:px-6">
+      <h2 class="text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
+        Built for founders who have ideas, but not enough time to repurpose them
+      </h2>
+      <p class="mx-auto mt-5 max-w-2xl text-lg text-muted-foreground">
+        You already create the long-form content. Social Spark Studio does the rest — extracting
+        the best moments and shaping them into posts your audience will actually engage with.
+      </p>
+    </div>
+  </section>
+
+  <!-- Message first -->
+  <section class="relative overflow-hidden py-24">
+    <div class="mx-auto grid max-w-6xl gap-12 px-4 sm:px-6 lg:grid-cols-2 lg:items-center lg:px-8">
+      <div>
+        <span class="inline-flex items-center gap-1.5 rounded-full border border-primary-30 bg-primary-soft px-3 py-1 text-xs font-semibold text-accent-foreground">
+          <i data-lucide="dna" class="h-3 w-3"></i> MessageDNA
+        </span>
+        <h2 class="mt-5 text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
+          Before we create content, we learn your message.
+        </h2>
+        <p class="mt-5 text-lg leading-relaxed text-muted-foreground">
+          Most content tools start with the video. Social Spark Studio starts with the founder.
+          Through a guided MessageDNA interview, the app captures your audience, beliefs,
+          offers, phrases, tone, and CTA style — so every post is grounded in what you actually
+          want to be known for.
+        </p>
+        <a href="/login" class="mt-7 inline-flex items-center gap-2 rounded-full bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground shadow-glow transition hover:opacity-90">
+          Capture your MessageDNA <i data-lucide="arrow-right" class="h-4 w-4"></i>
+        </a>
+      </div>
+      <div>
+        <div class="rounded-2xl border border-border bg-card p-6 shadow-soft">
+          <div class="flex items-center justify-between border-b border-border pb-3">
+            <div class="flex items-center gap-2">
+              <div class="flex h-9 w-9 items-center justify-center rounded-xl bg-primary text-primary-foreground">
+                <i data-lucide="dna" class="h-4 w-4"></i>
+              </div>
+              <div>
+                <p class="text-sm font-semibold text-foreground">MessageDNA Interview</p>
+                <p class="text-xs text-muted-foreground">Step 4 of 8</p>
+              </div>
+            </div>
+            <span class="rounded-full bg-success-15 px-2.5 py-1 text-xs font-semibold text-success-foreground">In progress</span>
+          </div>
+          <div class="mt-5 space-y-4">
+            <div class="flex justify-start">
+              <div class="max-w-[85%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed bg-secondary text-foreground">
+                <p class="mb-0.5 text-10 font-semibold uppercase tracking-wide opacity-70">Spark</p>
+                What's a belief most people in your space get wrong?
+              </div>
+            </div>
+            <div class="flex justify-end">
+              <div class="max-w-[85%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed bg-primary text-primary-foreground">
+                <p class="mb-0.5 text-10 font-semibold uppercase tracking-wide opacity-70">You</p>
+                That recurring revenue is only for SaaS. Service founders can build it too — they just need the right offer ladder.
+              </div>
+            </div>
+            <div class="flex justify-start">
+              <div class="max-w-[85%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed bg-secondary text-foreground">
+                <p class="mb-0.5 text-10 font-semibold uppercase tracking-wide opacity-70">Spark</p>
+                Love it. What phrase do you say a lot that we should reuse?
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- What MessageDNA captures -->
+  <section class="border-y border-border-60 bg-secondary/40 py-24">
+    <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+      <div class="mx-auto max-w-2xl text-center">
+        <h2 class="text-3xl font-bold tracking-tight text-foreground sm:text-4xl">What MessageDNA captures</h2>
+        <p class="mt-4 text-lg text-muted-foreground">The seven dimensions that make your content unmistakably yours.</p>
+      </div>
+      <div class="mt-14 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+        {% for item in [
+          ("volume-2", "Founder voice", "Cadence, rhythm, and how you sound on the page."),
+          ("users", "Audience and offer", "Who you serve and what you sell them."),
+          ("heart", "Signature beliefs", "The convictions that anchor your point of view."),
+          ("zap", "Contrarian point of view", "What you disagree with — and why it matters."),
+          ("message-square", "Phrases to use and avoid", "Your vocabulary, plus the words that aren't you."),
+          ("megaphone", "CTA style", "How you ask — direct, soft, curiosity-led, or playful."),
+          ("mic", "Tone rules", "When to be punchy, when to be warm, when to be quiet.")
+        ] %}
+        <div class="rounded-2xl border border-border bg-card p-6 shadow-soft">
+          <div class="flex h-11 w-11 items-center justify-center rounded-xl bg-primary-soft text-accent-foreground">
+            <i data-lucide="{{ item[0] }}" class="h-5 w-5"></i>
+          </div>
+          <h3 class="mt-5 text-lg font-semibold text-foreground">{{ item[1] }}</h3>
+          <p class="mt-1.5 text-sm text-muted-foreground">{{ item[2] }}</p>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+  </section>
+
+  <!-- How it works -->
+  <section id="how" class="py-24">
+    <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+      <div class="mx-auto max-w-2xl text-center">
+        <h2 class="text-3xl font-bold tracking-tight text-foreground sm:text-4xl">How it works</h2>
+        <p class="mt-4 text-lg text-muted-foreground">From founder voice to a posted campaign in five steps.</p>
+      </div>
+      <div class="mt-14 grid gap-6 md:grid-cols-2 lg:grid-cols-5">
+        {% for step in [
+          ("01", "dna", "Capture your MessageDNA", "A guided interview captures your voice, audience, and beliefs."),
+          ("02", "clipboard-list", "Add your campaign goal", "Tell Spark the theme and outcome for this campaign."),
+          ("03", "youtube", "Paste your YouTube video", "We pull the transcript and find your strongest moments."),
+          ("04", "file-text", "Generate aligned post drafts", "Captions, hooks, hashtags, and CTAs — in your voice."),
+          ("05", "download", "Export your campaign CSV", "Scheduler-ready file you can upload anywhere in one click.")
+        ] %}
+        <div class="group relative rounded-2xl border border-border bg-card p-6 shadow-soft transition hover:-translate-y-1">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-bold tracking-widest text-muted-foreground">{{ step[0] }}</span>
+            <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-primary-soft text-accent-foreground">
+              <i data-lucide="{{ step[1] }}" class="h-5 w-5"></i>
+            </div>
+          </div>
+          <h3 class="mt-6 text-base font-semibold text-foreground">{{ step[2] }}</h3>
+          <p class="mt-2 text-sm text-muted-foreground">{{ step[3] }}</p>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+  </section>
+
+  <!-- What it creates -->
+  <section id="features" class="border-y border-border-60 bg-secondary/40 py-24">
+    <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+      <div class="mx-auto max-w-2xl text-center">
+        <h2 class="text-3xl font-bold tracking-tight text-foreground sm:text-4xl">What it creates</h2>
+        <p class="mt-4 text-lg text-muted-foreground">Everything you need for a multi-post campaign — grounded in your MessageDNA.</p>
+      </div>
+      <div class="mt-14 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+        {% for item in [
+          ("file-text", "Captions", "Hook, body, and CTA written in your founder voice."),
+          ("hash", "Hashtags", "Relevant, on-brand hashtags for reach without noise."),
+          ("link-2", "Video timestamp links", "Deep-link directly to the moment in your video."),
+          ("image", "Image prompts", "Generated prompts and assets for visual posts."),
+          ("download", "CSV export", "One-click upload to Buffer, Hypefury, or your scheduler."),
+          ("mic", "Quote pulls", "Founder-grade quote cards from your strongest lines.")
+        ] %}
+        <div class="rounded-2xl border border-border bg-card p-6 shadow-soft">
+          <div class="flex h-11 w-11 items-center justify-center rounded-xl bg-primary text-primary-foreground">
+            <i data-lucide="{{ item[0] }}" class="h-5 w-5"></i>
+          </div>
+          <h3 class="mt-5 text-lg font-semibold text-foreground">{{ item[1] }}</h3>
+          <p class="mt-1.5 text-sm text-muted-foreground">{{ item[2] }}</p>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+  </section>
+
+  <!-- Final CTA -->
+  <section class="px-4 pb-24 pt-24 sm:px-6">
+    <div class="mx-auto max-w-5xl overflow-hidden rounded-3xl bg-foreground p-10 text-center sm:p-16">
+      <h2 class="text-3xl font-bold tracking-tight text-background sm:text-4xl">
+        Ready to turn your next video into a campaign?
+      </h2>
+      <p class="mx-auto mt-4 max-w-xl text-background/70">
+        Start with your MessageDNA, see your workflow end-to-end, and ship your first campaign today.
+      </p>
+      <div class="mt-8 flex flex-wrap items-center justify-center gap-3">
+        <a href="/login" class="inline-flex items-center gap-2 rounded-full bg-primary px-6 py-3 text-base font-semibold text-primary-foreground shadow-glow transition hover:opacity-90">
+          Start Creating <i data-lucide="arrow-right" class="h-4 w-4"></i>
+        </a>
+        <a href="/login" class="inline-flex items-center gap-2 rounded-full border border-background/30 px-6 py-3 text-base font-semibold text-background transition hover:bg-white/10">
+          Try the demo
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="border-t border-border-60 py-10">
+    <div class="mx-auto flex max-w-7xl flex-col items-center justify-between gap-4 px-4 sm:flex-row sm:px-6 lg:px-8">
+      <a href="/" class="logo-text">Social <span>Spark</span> Studio</a>
+      <p class="text-sm text-muted-foreground">© {{ year }} Social Spark Studio. Demo prototype.</p>
+    </div>
+  </footer>
+
+  <script>lucide.createIcons();</script>
+</body>
+</html>

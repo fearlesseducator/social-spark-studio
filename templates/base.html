@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{% block title %}Social Spark Studio{% endblock %}</title>
+
+  <!-- Design tokens + custom utilities -->
+  <link rel="stylesheet" href="/static/css/app.css" />
+
+  <!-- Tailwind CDN — layout, spacing, typography utilities -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            background:    'var(--background)',
+            foreground:    'var(--foreground)',
+            card:          'var(--card)',
+            primary:       { DEFAULT: 'var(--primary)', foreground: 'var(--primary-foreground)', soft: 'var(--primary-soft)' },
+            secondary:     { DEFAULT: 'var(--secondary)', foreground: 'var(--secondary-foreground)' },
+            muted:         { DEFAULT: 'var(--muted)', foreground: 'var(--muted-foreground)' },
+            accent:        { DEFAULT: 'var(--accent)', foreground: 'var(--accent-foreground)' },
+            destructive:   { DEFAULT: 'var(--destructive)', foreground: 'var(--destructive-foreground)' },
+            success:       { DEFAULT: 'var(--success)', foreground: 'var(--success-foreground)' },
+            warning:       { DEFAULT: 'var(--warning)', foreground: 'var(--warning-foreground)' },
+            border:        'var(--border)',
+            input:         'var(--input)',
+            ring:          'var(--ring)',
+          },
+          fontFamily: {
+            sans:    ['Inter', 'system-ui', 'sans-serif'],
+            display: ['"Plus Jakarta Sans"', 'Inter', 'system-ui', 'sans-serif'],
+          },
+          borderRadius: {
+            sm:   'calc(var(--radius) - 4px)',
+            md:   'calc(var(--radius) - 2px)',
+            lg:   'var(--radius)',
+            xl:   'calc(var(--radius) + 4px)',
+            '2xl':'calc(var(--radius) + 8px)',
+            '3xl':'calc(var(--radius) + 12px)',
+          },
+          boxShadow: {
+            soft: 'var(--shadow-soft)',
+            glow: 'var(--shadow-glow)',
+          },
+        }
+      }
+    }
+  </script>
+
+  <!-- Lucide icons -->
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+
+  {% block head %}{% endblock %}
+</head>
+<body class="min-h-screen bg-background text-foreground">
+
+  <!-- Sidebar -->
+  <aside id="sidebar">
+    <!-- Logo -->
+    <div class="flex h-16 items-center gap-2 border-b border-border px-5">
+      <a href="/" class="logo-text">Social <span>Spark</span> Studio</a>
+    </div>
+
+    <!-- Nav -->
+    <nav class="flex flex-col gap-1 p-3 flex-1">
+      <a href="/dashboard" class="nav-link {% if active_page == 'dashboard' %}active{% endif %}">
+        <i data-lucide="layout-dashboard" class="h-4 w-4 shrink-0"></i>
+        Dashboard
+      </a>
+      <a href="/messagedna" class="nav-link {% if active_page == 'messagedna' %}active{% endif %}">
+        <i data-lucide="dna" class="h-4 w-4 shrink-0"></i>
+        MessageDNA
+      </a>
+      <a href="/voice" class="nav-link {% if active_page == 'voice' %}active{% endif %}">
+        <i data-lucide="mic" class="h-4 w-4 shrink-0"></i>
+        Voice Studio
+      </a>
+      <a href="/campaign" class="nav-link {% if active_page == 'campaign' %}active{% endif %}">
+        <i data-lucide="megaphone" class="h-4 w-4 shrink-0"></i>
+        Campaign
+      </a>
+      <a href="/posts" class="nav-link {% if active_page == 'posts' %}active{% endif %}">
+        <i data-lucide="file-text" class="h-4 w-4 shrink-0"></i>
+        Posts
+      </a>
+      <a href="/export" class="nav-link {% if active_page == 'export' %}active{% endif %}">
+        <i data-lucide="download" class="h-4 w-4 shrink-0"></i>
+        Export
+      </a>
+      <div class="my-1 border-t border-border"></div>
+      <a href="/help" class="nav-link {% if active_page == 'help' %}active{% endif %}">
+        <i data-lucide="book-open" class="h-4 w-4 shrink-0"></i>
+        Help
+      </a>
+    </nav>
+
+    <!-- User footer -->
+    <div class="border-t border-border p-4">
+      <div class="flex items-center gap-3 rounded-lg bg-secondary p-3">
+        <div class="flex h-9 w-9 items-center justify-center rounded-full bg-primary text-primary-foreground text-sm font-semibold shrink-0">
+          FD
+        </div>
+        <div class="min-w-0 flex-1">
+          <p class="truncate text-sm font-medium text-foreground">Founder Demo</p>
+          <p class="truncate text-xs text-muted-foreground">demo@socialspark.studio</p>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Sidebar overlay (mobile) -->
+  <div id="sidebar-overlay" class="fixed inset-0 z-30 hidden bg-foreground-20 lg:hidden" onclick="closeSidebar()"></div>
+
+  <!-- Main content -->
+  <div id="main-content">
+    <!-- Topbar -->
+    <header id="topbar">
+      <button type="button" onclick="toggleSidebar()" class="rounded-md p-2 text-foreground hover:bg-secondary lg:hidden" aria-label="Toggle menu">
+        <i id="menu-icon" data-lucide="menu" class="h-5 w-5"></i>
+      </button>
+      <!-- Mobile logo -->
+      <div class="flex items-center gap-2 lg:hidden">
+        <a href="/" class="logo-text text-base">Social <span>Spark</span> Studio</a>
+      </div>
+      <!-- Demo badge -->
+      <div class="flex items-center gap-3 ml-auto">
+        <span class="inline-flex items-center gap-1.5 rounded-full border border-primary-30 bg-primary-soft px-3 py-1 text-11 font-semibold text-accent-foreground">
+          <i data-lucide="sparkles" class="h-3 w-3"></i> Demo Mode
+        </span>
+      </div>
+    </header>
+
+    <!-- Page content -->
+    <main class="px-4 py-6 sm:px-6 lg:px-10 lg:py-10">
+      {% block content %}{% endblock %}
+    </main>
+  </div>
+
+  <script>
+    // Sidebar toggle
+    function toggleSidebar() {
+      const sidebar  = document.getElementById('sidebar');
+      const overlay  = document.getElementById('sidebar-overlay');
+      const open     = sidebar.classList.contains('open');
+      sidebar.classList.toggle('open', !open);
+      overlay.classList.toggle('hidden', open);
+    }
+    function closeSidebar() {
+      document.getElementById('sidebar').classList.remove('open');
+      document.getElementById('sidebar-overlay').classList.add('hidden');
+    }
+
+    // Boot Lucide
+    lucide.createIcons();
+  </script>
+
+  {% block scripts %}{% endblock %}
+</body>
+</html>

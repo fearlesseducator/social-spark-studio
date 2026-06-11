@@ -1,0 +1,79 @@
+{
+  "founder_identity": {
+    "founder_name": "Alex Rivera",
+    "brand_name": "Clarity OS",
+    "known_for": "Helping SaaS founders reduce churn in the first 30 days by fixing onboarding before it costs them customers"
+  },
+  "audience_profile": {
+    "ideal_audience": "Early-stage SaaS founders who have achieved product-market fit but are losing 20-40% of new users in the first month",
+    "audience_worldview": "They believe their churn problem is a product problem — a missing feature, a UX issue, or a pricing mismatch. They have not yet seen that it is almost always a messaging and onboarding clarity problem.",
+    "core_problem_solved": "New users arrive confused about the product's core value. They don't know what to do first, why it matters, or how it connects to the outcome they bought it for. They leave before they experience the value.",
+    "audience_misconceptions": "Most founders think churn happens because users stopped caring or found a competitor. In reality, churn usually happens in week one — before the user ever experienced the product's real value. The product never had a chance."
+  },
+  "founder_positioning": {
+    "signature_beliefs": [
+      "Onboarding is your most important marketing channel and most founders treat it like an afterthought",
+      "Churn is almost always a clarity problem, not a product problem",
+      "The best way to reduce churn is to close the gap between what users expect and what they experience on day one",
+      "Founders who write their own onboarding copy are too close to the product to see what a confused new user sees"
+    ],
+    "contrarian_belief": "Adding more features will not fix your churn. Most founders who churn users have a product with too many features and a first-time experience that tries to show all of them at once. Less is the answer, not more.",
+    "origin_story": "I ran a SaaS product for four years and hit a 38% monthly churn rate at the exact moment we thought we had found product-market fit. We hired a growth consultant, rebuilt our pricing, ran A/B tests. Nothing worked. Then a user sent us an email that said: I still don't understand what your product actually does. That was the whole problem. We rebuilt the onboarding around one job to be done. Churn dropped to 9% in 60 days. That experience is why I do this work.",
+    "future_vision": "I want early-stage SaaS founders to stop treating onboarding as a UX problem and start treating it as their primary retention strategy. In five years I want 'clarity-first onboarding' to be the standard — not the exception."
+  },
+  "voice_profile": {
+    "brand_voice_words": [
+      "direct",
+      "practical",
+      "honest",
+      "grounded",
+      "founder-to-founder"
+    ],
+    "phrases_to_use": [
+      "Here's what's actually happening",
+      "The real problem is",
+      "Most founders get this backwards",
+      "Let me show you what this looks like in practice",
+      "This is the part nobody talks about"
+    ],
+    "phrases_to_avoid": [
+      "leverage synergies",
+      "growth hacking",
+      "10x your results",
+      "crush it",
+      "game-changer",
+      "disruptive",
+      "unlock your potential"
+    ],
+    "tone_rules": "Direct and honest without being harsh. I talk to founders the way a trusted peer would — not like a consultant selling them something. I name the uncomfortable truth and then give them a clear path forward. Never motivational poster energy. Always specific and practical.",
+    "teaching_style": "I use before-and-after examples from real products. I break complex ideas into one concrete step at a time. I always start with the problem, not the solution. I use short paragraphs and plain language — I write the way I talk.",
+    "cta_style": "Soft and direct at the same time. I explain what the next step is and why it matters, then invite them to take it. I don't pressure. Example: 'If you want to see what this looks like for your product, here's where to start.'"
+  },
+  "content_direction": {
+    "content_pillars": [
+      "Onboarding clarity — the gap between user expectation and first experience",
+      "Churn diagnosis — how to find the real reason users leave",
+      "Founder messaging — how to talk about your product in your customer's language",
+      "SaaS growth truths — honest takes on what actually moves retention metrics"
+    ],
+    "visual_metaphors": [
+      "Maps and navigation — helping users find their way to value",
+      "Before and after screenshots of real onboarding flows",
+      "Funnels with clear drop-off points highlighted",
+      "Simple diagrams showing the gap between expectation and experience"
+    ],
+    "visual_avoid_list": [
+      "Stock photos of people looking at laptops",
+      "Generic rocket ship or growth chart imagery",
+      "Neon colors or flashy gradients",
+      "Abstract tech imagery with no connection to real product problems",
+      "Smiling headshots of people I don't know"
+    ],
+    "credibility_markers": [
+      "Reduced churn from 38% to 9% in 60 days on my own SaaS product",
+      "Worked with 40+ early-stage SaaS founders on onboarding clarity",
+      "Former product lead at two Series A companies",
+      "Have reviewed onboarding flows for products used by over 200,000 users"
+    ]
+  }
+}

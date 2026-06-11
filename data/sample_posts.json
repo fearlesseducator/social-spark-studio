@@ -1,0 +1,68 @@
+{
+  "campaign_id": "campaign_a3f7c91b",
+  "total_posts": 2,
+  "generation_notes": "Voice consistency strong across both posts. phrases_to_use ('The real problem is', 'Here\\'s what\\'s actually happening', 'Most founders get this backwards') applied naturally. No phrases_to_avoid detected. CTA style matches founder\\'s confirmed cta_style: soft and direct, explains the next step before the invite.",
+  "posts": [
+    {
+      "post_index": 0,
+      "source_moment_index": 0,
+      "platform": "LinkedIn",
+      "content_pillar": "Churn diagnosis \u2014 how to find the real reason users leave",
+      "caption": "Most SaaS founders think their churn problem is a product problem.\n\nThey're adding features, redesigning the UI, tweaking pricing.\n\nHere's what's actually happening: churn almost always occurs in week one \u2014 before the user has ever experienced real value. So no feature you add is going to fix it.\n\nThe real problem is your onboarding. And the real fix is simpler than you think.\n\nIf you want to see what this looks like for your product, here's where to start: clarityos.com/audit",
+      "hashtags": {
+        "tier1_niche": [
+          "#saasfounder",
+          "#churnreduction",
+          "#saasonboarding"
+        ],
+        "tier2_midrange": [
+          "#saasmarketing",
+          "#productgrowth"
+        ],
+        "tier3_broad": [
+          "#startup"
+        ]
+      },
+      "transcript_quote": "Most SaaS founders think their churn problem is a product problem. They're adding features, redesigning the UI, tweaking pricing. But here's the thing \u2014 churn almost always happens in week one. Before the user has ever experienced real value. So no feature you add is going to fix it.",
+      "clip_url": "https://www.youtube.com/watch?v=abc12345678&t=0s",
+      "start_timestamp": "00:00",
+      "end_timestamp": "00:28",
+      "scheduled_date": "",
+      "scheduled_time": "",
+      "cta_link": "https://clarityos.com/audit",
+      "image_url": "",
+      "status": "draft",
+      "review_notes": ""
+    },
+    {
+      "post_index": 1,
+      "source_moment_index": 2,
+      "platform": "Instagram",
+      "content_pillar": "Founder messaging \u2014 how to talk about your product in your customer's language",
+      "caption": "We tried everything to fix our churn.\n\nGrowth consultant. Rebuilt pricing. A/B tests on every button.\n\nNothing worked.\n\nThen a user sent us a short email:\n\n\"I still don't understand what your product actually does.\"\n\nThat was the whole problem. Not the price. Not the features. Not the UI.\n\nThe message.\n\nMost founders get this backwards \u2014 they fix the product when they should fix the story.\n\nThis is the part nobody talks about. If you're ready to fix yours: clarityos.com/audit",
+      "hashtags": {
+        "tier1_niche": [
+          "#foundermessaging",
+          "#saasfounder"
+        ],
+        "tier2_midrange": [
+          "#startupmarketing",
+          "#b2bsaas"
+        ],
+        "tier3_broad": [
+          "#entrepreneurship"
+        ]
+      },
+      "transcript_quote": "We hired a growth consultant. We rebuilt our pricing. We ran A/B tests on every button on the page. Nothing worked. And then a user sent us an email \u2014 a short one \u2014 that said: I still don't understand what your product actually does. That was the whole problem. Not the price. Not the features. Not the UI. The message.",
+      "clip_url": "https://www.youtube.com/watch?v=abc12345678&t=62s",
+      "start_timestamp": "01:02",
+      "end_timestamp": "01:44",
+      "scheduled_date": "",
+      "scheduled_time": "",
+      "cta_link": "https://clarityos.com/audit",
+      "image_url": "",
+      "status": "draft",
+      "review_notes": ""
+    }
+  ]
+}

@@ -1,0 +1,57 @@
+# ============================================================
+# Social Spark Studio — Requirements
+# ============================================================
+# Install everything with:
+#   pip install -r requirements.txt
+#
+# Python 3.10+ required.
+# ============================================================
+
+# ── Phases 1–2: ADK Agents (MessageDNA + CampaignBrief) ─────
+# Google ADK — agent framework, runners, session management.
+# Pulls in google-genai and python-dotenv as dependencies.
+google-adk>=2.2.0
+
+# ── Phase 3: YouTube Transcript Mining ──────────────────────
+# Fetches auto-generated and manual captions from YouTube.
+youtube-transcript-api>=1.0.0
+
+# ── Phases 4–5: Moment Selector + Caption Writer ────────────
+# No additional packages — pure ADK + gemini-2.5-flash.
+
+# ── Phase 6A: Image Generation ──────────────────────────────
+# python-dotenv — loads .env file in all runners.
+# Already a dependency of google-adk, listed explicitly for clarity.
+python-dotenv>=1.0.0
+
+# Pillow — used by google-genai to handle image bytes locally.
+# Required when calling client.models.generate_images() and
+# accessing generated_images[0].image.image_bytes.
+Pillow>=10.0.0
+
+# ── Voice / Speech ───────────────────────────────────────────
+# Google Cloud Speech-to-Text — transcribes audio input.
+google-cloud-speech>=2.0.0
+
+# Google Cloud Text-to-Speech — synthesises audio from text.
+google-cloud-texttospeech>=2.0.0
+
+# ── API Layer ────────────────────────────────────────────────
+# FastAPI — async web framework for serving the studio API.
+fastapi>=0.100.0
+
+# Uvicorn — ASGI server that runs FastAPI.
+uvicorn>=0.23.0
+
+# Jinja2 — HTML template engine for FastAPI server-side rendering.
+jinja2>=3.0.0
+
+# python-multipart — required for Form() and File() in FastAPI routes.
+python-multipart>=0.0.6
+
+# ============================================================
+# Coming in Phase 6B / Phase 7+:
+#   firebase-admin           — Firebase Auth + Firestore
+#   google-cloud-storage     — Cloud Storage image hosting
+#   google-cloud-aiplatform  — Vertex AI direct SDK (if needed)
+# ============================================================

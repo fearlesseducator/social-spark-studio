@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Login — Social Spark Studio</title>
+  <link rel="stylesheet" href="/static/css/app.css" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            background: 'var(--background)', foreground: 'var(--foreground)', card: 'var(--card)',
+            primary: { DEFAULT: 'var(--primary)', foreground: 'var(--primary-foreground)', soft: 'var(--primary-soft)' },
+            secondary: 'var(--secondary)', muted: { DEFAULT: 'var(--muted)', foreground: 'var(--muted-foreground)' },
+            accent: { DEFAULT: 'var(--accent)', foreground: 'var(--accent-foreground)' },
+            border: 'var(--border)', input: 'var(--input)',
+          },
+          fontFamily: { sans: ['Inter', 'system-ui', 'sans-serif'], display: ['"Plus Jakarta Sans"', 'Inter', 'system-ui', 'sans-serif'] },
+          borderRadius: { xl: 'calc(var(--radius) + 4px)', '2xl': 'calc(var(--radius) + 8px)' },
+          boxShadow: { soft: 'var(--shadow-soft)', glow: 'var(--shadow-glow)' },
+        }
+      }
+    }
+  </script>
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+</head>
+<body class="min-h-screen bg-background flex items-center justify-center px-4">
+
+  <div class="w-full max-w-sm">
+    <!-- Logo -->
+    <div class="mb-8 text-center">
+      <a href="/" class="logo-text text-xl">Social <span>Spark</span> Studio</a>
+      <p class="mt-2 text-sm text-muted-foreground">
+        {% if demo_gated %}Demo login — password required{% else %}Demo login — no password required{% endif %}
+      </p>
+    </div>
+
+    <!-- Card -->
+    <div class="card p-8">
+      {% if login_error %}
+      <div class="mb-6 flex items-center gap-2 rounded-xl border border-destructive-30 bg-destructive/10 p-3">
+        <i data-lucide="alert-triangle" class="h-4 w-4 shrink-0 text-destructive"></i>
+        <p class="text-xs text-destructive font-medium">{{ login_error }}</p>
+      </div>
+      {% endif %}
+      <div class="mb-6 flex items-center gap-2 rounded-xl border border-primary-30 bg-primary-soft p-3">
+        <i data-lucide="sparkles" class="h-4 w-4 shrink-0 text-accent-foreground"></i>
+        <p class="text-xs text-accent-foreground font-medium">
+          {% if demo_gated %}
+          Enter the demo password to continue.
+          {% else %}
+          This is a local demo. Click <strong>Enter Studio</strong> to continue.
+          {% endif %}
+        </p>
+      </div>
+
+      <form action="/login" method="POST" class="space-y-4">
+        <div>
+          <label class="block text-sm font-medium text-foreground mb-1.5">Email</label>
+          <input
+            type="email"
+            name="email"
+            value="demo@socialspark.studio"
+            class="w-full rounded-xl border border-input bg-background px-3 py-2.5 text-sm text-foreground outline-none focus:border-ring focus:ring-2 focus:ring-ring/20 transition"
+          />
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-foreground mb-1.5">Password</label>
+          <input
+            type="password"
+            name="password"
+            placeholder="{% if demo_gated %}Demo password{% else %}Any value — demo mode{% endif %}"
+            class="w-full rounded-xl border border-input bg-background px-3 py-2.5 text-sm text-foreground outline-none focus:border-ring focus:ring-2 focus:ring-ring/20 transition"
+          />
+        </div>
+        <button type="submit" class="btn-primary w-full justify-center mt-2">
+          Enter Studio <i data-lucide="arrow-right" class="h-4 w-4"></i>
+        </button>
+      </form>
+    </div>
+
+    <p class="mt-6 text-center text-xs text-muted-foreground">
+      <a href="/" class="hover:text-foreground transition-colors">← Back to home</a>
+    </p>
+  </div>
+
+  <script>lucide.createIcons();</script>
+</body>
+</html>
