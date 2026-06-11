@@ -345,6 +345,7 @@ class VoiceConversationService:
         interview_done = _extract_interview_complete(agent_response)
         if interview_done:
             self._save_message_dna(voice_session)
+            self._save_campaign_brief(voice_session)
 
         # ── Step 5: Log this exchange ──────────────────────────────
         current_block = voice_session.current_block()
@@ -405,3 +406,85 @@ class VoiceConversationService:
                 print("MessageDNA saved to Firestore: message_dna/default_founder")
             except Exception as exc:
                 print(f"[voice] Firestore MessageDNA save failed (local copy OK): {exc}")
+
+    def _save_campaign_brief(self, voice_session: VoiceConversationSession) -> None:
+        """
+        Build a starter CampaignBrief from the confirmed interview blocks
+        so /campaign is populated right after the interview completes.
+
+        Never overwrites an existing brief — if one exists (from the CLI
+        run_campaign.py phase or a previous interview), it is kept.
+        Failure here never blocks the interview completion.
+        """
+        try:
+            from models.campaign_brief import CampaignBrief, generate_campaign_id
+            from services.storage_service import (
+                storage_load_campaign_brief,
+                storage_save_campaign_brief,
+            )
+
+            existing = storage_load_campaign_brief()
+            if existing is not None and existing.is_complete():
+                print("[voice] Campaign brief already exists — not overwriting.")
+                return
+
+            # Union of all confirmed blocks' extracted fields
+            fields: dict = {}
+            for block in voice_session.blocks:
+                if block.confirmed:
+                    fields.update(block.extracted_fields)
+
+            def get(key, default=""):
+                v = fields.get(key, default)
+                return v if v else default
+
+            def get_list(key):
+                v = fields.get(key, [])
+                return v if isinstance(v, list) else [v] if v else []
+
+            audience       = get("ideal_audience")
+            core_problem   = get("core_problem_solved")
+            transformation = get("transformation")
+            offer          = get("offer") or transformation
+            contrarian     = get("contrarian_belief")
+            cta            = get("primary_cta") or get("cta_style")
+            voice_words    = get_list("brand_voice_words")
+            tone_rules     = get("tone_rules")
+            cta_style      = get("cta_style")
+
+            # Narrative arc: audience + problem → belief shift → transformation → CTA
+            arc_parts = []
+            if audience and core_problem:
+                arc_parts.append(f"Speak to {audience} wrestling with {core_problem}.")
+            if contrarian:
+                arc_parts.append(f"Shift their belief: {contrarian}")
+            if transformation:
+                arc_parts.append(f"Show the transformation: {transformation}")
+            if cta:
+                arc_parts.append(f"Invite action: {cta}")
+
+            voice_notes = []
+            if voice_words:
+                voice_notes.append(f"Voice: {', '.join(voice_words)}")
+            if tone_rules:
+                voice_notes.append(f"Tone: {tone_rules}")
+            if cta_style:
+                voice_notes.append(f"CTA style: {cta_style}")
+
+            brief = CampaignBrief(
+                campaign_goal             = get("campaign_goal"),
+                selected_offer            = offer,
+                primary_cta               = cta,
+                target_platforms          = get_list("platforms"),
+                campaign_theme            = contrarian or core_problem,
+                campaign_narrative        = " ".join(arc_parts),
+                specific_audience_segment = audience,
+                success_definition        = transformation,
+                timely_context            = " | ".join(voice_notes),
+                campaign_id               = generate_campaign_id(),
+            )
+            storage_save_campaign_brief(brief)
+            print("[voice] Starter campaign brief created from interview data.")
+
+        except Exception as exc:
+            print(f"[voice] Campaign brief auto-create failed (interview unaffected): {exc}")

@@ -77,6 +77,10 @@ class CampaignBrief:
     posts_per_week: Optional[int] = None
     campaign_duration_weeks: Optional[int] = None
 
+    # Narrative arc connecting the campaign's posts (optional).
+    # Auto-filled from the voice interview; editable per campaign.
+    campaign_narrative: str = ""
+
     # YouTube video URL (filled after CampaignBrief interview, before transcript phase)
     youtube_url: str = ""
 

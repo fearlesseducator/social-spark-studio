@@ -308,6 +308,14 @@ async def messagedna(request: Request):
 @app.get("/campaign", response_class=HTMLResponse)
 async def campaign(request: Request):
     brief = _load_json("campaign_brief.json")
+    if brief is None:
+        # Fresh container — pull the brief down from Firestore if present
+        try:
+            from services.storage_service import hydrate_local_file
+            if hydrate_local_file("campaign_brief.json"):
+                brief = _load_json("campaign_brief.json")
+        except Exception:
+            pass
     return render("campaign.html", active_page="campaign", brief=brief)
 
 
