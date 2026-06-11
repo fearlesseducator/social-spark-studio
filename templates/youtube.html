@@ -46,15 +46,15 @@
   <section class="card p-6">
     <h2 class="text-base font-semibold text-foreground mb-1">Or import from an RSS feed</h2>
     <p class="text-sm text-muted-foreground mb-4">
-      Have a recurring show? Paste your RSS feed or YouTube Channel ID and
-      choose a 5–20 minute audio episode to transcribe.
+      Have a recurring show? Paste the RSS feed from your podcast/audio host
+      and choose a 5–20 minute audio episode to transcribe.
     </p>
 
     <div class="flex flex-col sm:flex-row gap-3">
       <input
         id="rss-url"
         type="text"
-        placeholder="Your YouTube Channel ID (UC…) or RSS feed URL"
+        placeholder="https://feeds.example.com/your-show.rss"
         class="flex-1 rounded-xl border border-border bg-background px-4 py-2.5 text-sm outline-none placeholder:text-muted-foreground text-foreground focus:ring-2 focus:ring-primary"
       />
       <button
@@ -77,12 +77,12 @@
   <!-- ── Where do I find my RSS feed? ─────────────────────────── -->
   <section class="rounded-2xl border border-primary-30 bg-primary-soft p-5">
     <p class="text-xs font-bold uppercase tracking-wide text-accent-foreground mb-2">
-      Where do I find my Channel ID or RSS feed?
+      Where do I find my RSS feed?
     </p>
     <ul class="space-y-1.5 text-sm text-foreground list-disc pl-5">
-      <li><strong>YouTube:</strong> Go to YouTube Studio → Settings → Channel → Advanced settings → copy your <strong>Channel ID</strong>. Paste the Channel ID here. It usually starts with <strong>UC</strong>.</li>
-      <li><strong>Podcast / audio host:</strong> look for a link called <strong>RSS Feed</strong> or <strong>Copy RSS Link</strong> and paste the URL here.</li>
-      <li>An individual YouTube video URL will not work — use your Channel ID instead.</li>
+      <li>Go to the platform where your show/audio episodes are published (your podcast or audio host).</li>
+      <li>Look for a link called <strong>RSS Feed</strong>, <strong>Podcast RSS</strong>, or <strong>Copy RSS Link</strong> and paste the URL here.</li>
+      <li>YouTube links and Channel IDs are not supported — YouTube blocks feed access from cloud servers. Upload your MP4 video above instead.</li>
     </ul>
   </section>
 
@@ -290,12 +290,12 @@
     pipeHide('rss-episodes');
 
     if (!url) {
-      pipeStatus('rss-status', pipeErrorHtml('Please enter your Channel ID or RSS feed URL.'));
+      pipeStatus('rss-status', pipeErrorHtml('Please enter your RSS feed URL.'));
       return;
     }
-    // Individual YouTube video URLs are not feeds
-    if (/(?:youtube\.com\/watch\?|youtu\.be\/|youtube\.com\/shorts\/)/.test(url)) {
-      pipeStatus('rss-status', pipeErrorHtml('Please paste your Channel ID or RSS feed link, not an individual YouTube video URL.'));
+    // YouTube is blocked server-side — videos, channels, and channel IDs
+    if (/(?:youtube\.com|youtu\.be)/.test(url) || /^UC[A-Za-z0-9_-]{18,}$/.test(url)) {
+      pipeStatus('rss-status', pipeErrorHtml('YouTube links and Channel IDs are not supported — YouTube blocks feed access from cloud servers. Upload your MP4 video above instead.'));
       return;
     }
 

@@ -50,32 +50,24 @@ def normalize_feed_input(raw: str) -> tuple[list[str], str]:
         return [], "Please enter your Channel ID or RSS feed URL."
 
     if is_youtube_video_url(raw):
-        return [], "Please paste your Channel ID or RSS feed link, not an individual YouTube video URL."
+        return [], "Please paste your RSS feed link, not an individual YouTube video URL."
 
-    # Bare Channel ID
-    if _CHANNEL_ID_RE.match(raw):
-        uu = "UU" + raw[2:]
-        return [
-            f"https://www.youtube.com/feeds/videos.xml?channel_id={raw}",
-            f"https://www.youtube.com/feeds/videos.xml?playlist_id={uu}",
-        ], ""
-
-    # Channel URL → extract the ID
-    m = re.search(r"youtube\.com/channel/(UC[A-Za-z0-9_-]{18,})", raw)
-    if m:
-        cid = m.group(1)
-        uu = "UU" + cid[2:]
-        return [
-            f"https://www.youtube.com/feeds/videos.xml?channel_id={cid}",
-            f"https://www.youtube.com/feeds/videos.xml?playlist_id={uu}",
-        ], ""
+    # YouTube Channel IDs / channel URLs / feed URLs are not supported:
+    # YouTube blocks feed requests from cloud servers.
+    if (_CHANNEL_ID_RE.match(raw)
+            or "youtube.com/channel/" in raw
+            or "youtube.com/feeds" in raw):
+        return [], (
+            "YouTube blocks feed access from cloud servers, so YouTube channels "
+            "can't be imported here. Upload your MP4 video above, or use the RSS "
+            "feed from your podcast/audio host."
+        )
 
     # Anything URL-shaped → try as-is
     if raw.startswith(("http://", "https://")):
         return [raw], ""
 
-    return [], ("That doesn't look like a Channel ID or feed URL. "
-                "Your Channel ID usually starts with UC.")
+    return [], "That doesn't look like an RSS feed URL."
 
 
 @dataclass
