@@ -74,7 +74,10 @@ def transcribe_audio(
     """
     model       = os.getenv("SPEECH_TO_TEXT_MODEL", "chirp_3")
     project     = os.getenv("GOOGLE_CLOUD_PROJECT", "")
-    location    = os.getenv("GOOGLE_CLOUD_LOCATION", "us-central1")
+    # chirp_3 lives in multi-regions ("us", "eu") — NOT "global" or
+    # "us-central1". Deliberately independent of GOOGLE_CLOUD_LOCATION,
+    # which Vertex/Imagen need set to "global".
+    location    = os.getenv("STT_LOCATION", "us")
     language_code = os.getenv("STT_LANGUAGE_CODE", language_code)
 
     if not project:
@@ -89,27 +92,25 @@ def transcribe_audio(
     try:
         from google.cloud.speech_v2 import SpeechClient
         from google.cloud.speech_v2.types import cloud_speech
+        from google.api_core.client_options import ClientOptions
 
-        client = SpeechClient()
+        # Regional recognizers (chirp_3 lives in regions like us-central1,
+        # not "global") must use the matching regional API endpoint.
+        if location and location != "global":
+            client = SpeechClient(client_options=ClientOptions(
+                api_endpoint=f"{location}-speech.googleapis.com"
+            ))
+        else:
+            client = SpeechClient()
 
         # Chirp 3 uses the v2 API with a recognizer config
         recognizer_name = (
             f"projects/{project}/locations/{location}/recognizers/_"
         )
 
-        # Map encoding string to enum
-        encoding_map = {
-            "WEBM_OPUS":  cloud_speech.RecognitionConfig.AudioEncoding.WEBM_OPUS,
-            "LINEAR16":   cloud_speech.RecognitionConfig.AudioEncoding.LINEAR16,
-            "FLAC":       cloud_speech.RecognitionConfig.AudioEncoding.FLAC,
-            "MP3":        cloud_speech.RecognitionConfig.AudioEncoding.MP3,
-            "OGG_OPUS":   cloud_speech.RecognitionConfig.AudioEncoding.OGG_OPUS,
-        }
-        audio_encoding = encoding_map.get(
-            encoding.upper(),
-            cloud_speech.RecognitionConfig.AudioEncoding.WEBM_OPUS,
-        )
-
+        # The encoding parameter is intentionally ignored: speech_v2 has no
+        # RecognitionConfig.AudioEncoding (that's the v1 API). AutoDetect
+        # handles browser WEBM_OPUS, WAV, MP3, FLAC, and OGG automatically.
         config = cloud_speech.RecognitionConfig(
             auto_decoding_config=cloud_speech.AutoDetectDecodingConfig(),
             language_codes=[language_code],

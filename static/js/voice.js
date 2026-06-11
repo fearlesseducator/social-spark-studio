@@ -144,14 +144,26 @@ async function startRecording() {
       : new MediaRecorder(stream);
 
     mediaRecorder.ondataavailable = (e) => {
+      console.log('[voice] ondataavailable fired — chunk size:', e.data ? e.data.size : 0, 'bytes');
       if (e.data && e.data.size > 0) {
         audioChunks.push(e.data);
       }
     };
 
     mediaRecorder.onstop = () => {
+      console.log('[voice] onstop fired — total chunks collected:', audioChunks.length);
       stream.getTracks().forEach(t => t.stop());
-      onRecordingStopped();
+      try {
+        onRecordingStopped();
+      } catch (err) {
+        console.error('[voice] ERROR inside onRecordingStopped:', err);
+        showError('Recording processing error: ' + err.message);
+        resetToReady();
+      }
+    };
+
+    mediaRecorder.onerror = (e) => {
+      console.error('[voice] MediaRecorder error event:', e.error || e);
     };
 
     mediaRecorder.start(250);  // collect chunks every 250 ms
@@ -172,9 +184,16 @@ async function startRecording() {
 // ── MediaRecorder stop ────────────────────────────────────────────────
 
 function stopRecording() {
-  console.log('[voice] stopRecording() called');
+  console.log('[voice] stopRecording() called — recorder state:',
+    mediaRecorder ? mediaRecorder.state : '(no mediaRecorder)');
   if (mediaRecorder && mediaRecorder.state !== 'inactive') {
     mediaRecorder.stop();
+    console.log('[voice] mediaRecorder.stop() called — waiting for onstop');
+  } else {
+    // SILENT PATH: stop() skipped → onstop never fires → no blob, no fetch
+    console.warn('[voice] mediaRecorder.stop() SKIPPED — recorder is',
+      mediaRecorder ? 'already inactive' : 'null',
+      '— onstop will NOT fire, no audio will be sent');
   }
   appState = STATE.PROCESSING;
   setRecBtn('state-processing', 'loader', 'Processing…');
@@ -185,16 +204,19 @@ function stopRecording() {
 
 function onRecordingStopped() {
   const blob = new Blob(audioChunks, { type: mediaRecorder.mimeType || 'audio/webm' });
-  console.log('[voice] Recording stopped. Blob size:', blob.size, 'bytes, type:', blob.type);
+  console.log('[voice] Audio blob created — size:', blob.size, 'bytes, type:', blob.type,
+    '— from', audioChunks.length, 'chunks');
 
   if (blob.size < 1000) {
-    // Too small — almost certainly silence or a failed capture
+    // SILENT PATH: blob too small → no fetch is made
     showError('No audio was captured. Please try again, or type your answer below.');
     resetToReady();
-    console.warn('[voice] Audio blob too small:', blob.size, '— likely no audio captured');
+    console.warn('[voice] Audio blob too small:', blob.size,
+      'bytes (< 1000 threshold) — fetch SKIPPED, no request will appear in Network tab');
     return;
   }
 
+  console.log('[voice] Blob OK — calling sendAudioTurn()');
   sendAudioTurn(blob);
 }
 
@@ -207,10 +229,12 @@ async function sendAudioTurn(audioBlob) {
   formData.append('sample_rate', '16000');
   formData.append('encoding', 'WEBM_OPUS');
 
-  console.log('[voice] POST /voice/turn/audio — blob size:', audioBlob.size);
+  console.log('[voice] About to fetch POST /voice/turn/audio — blob size:', audioBlob.size,
+    '| session_id:', sessionId);
 
   try {
     const res  = await fetch('/voice/turn/audio', { method: 'POST', body: formData });
+    console.log('[voice] fetch returned — HTTP status:', res.status);
     const data = await res.json();
     console.log('[voice] /voice/turn/audio response received:', {
       success:      data.success,
