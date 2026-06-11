@@ -154,9 +154,18 @@ def run_export(
     print("  Social Spark Studio -- Phase 7: CSV Export")
     print("=" * 60)
 
-    check_prerequisites(posts_path)
-
-    draft_set = load_post_draft_set(posts_path)
+    # When USE_FIRESTORE is on, load via the storage router (Firestore
+    # with local-file fallback). Otherwise use the local file directly.
+    if os.getenv("USE_FIRESTORE", "false").lower() == "true":
+        from services.storage_service import storage_load_post_drafts
+        draft_set = storage_load_post_drafts()
+        if draft_set is None:
+            print("\n  No post drafts found in Firestore or locally.")
+            print("  Run Phase 5 first: python run_captions.py")
+            sys.exit(1)
+    else:
+        check_prerequisites(posts_path)
+        draft_set = load_post_draft_set(posts_path)
     print(f"\n{draft_set.summary()}")
 
     # Determine which posts to export

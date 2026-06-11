@@ -49,13 +49,24 @@ from google.genai import types as genai_types
 
 # Local imports
 from agents.voice_conversation_agent import create_voice_conversation_agent
-from models.voice_conversation import (
-    VoiceConversationSession,
-    save_voice_session,
-    load_voice_session,
+from models.voice_conversation import VoiceConversationSession
+from services.storage_service import (
+    storage_save_voice_session,
+    storage_load_voice_session,
+    USE_FIRESTORE,
 )
 from tools.speech_to_text_tool import transcribe_audio, stt_is_configured
 from tools.text_to_speech_tool import synthesise_speech, tts_is_configured
+
+
+def _load_session() -> VoiceConversationSession:
+    """Load the voice session via the storage router; fresh session if none."""
+    return storage_load_voice_session() or VoiceConversationSession()
+
+
+def _save_session(session: VoiceConversationSession) -> None:
+    """Save the voice session via the storage router (local + Firestore)."""
+    storage_save_voice_session(session)
 
 # ---------------------------------------------------------------------------
 # Storage paths
@@ -200,11 +211,11 @@ class VoiceConversationService:
         Call this when the frontend loads the Voice Conversation Studio.
         """
         # Load or create session state
-        voice_session = load_voice_session(VOICE_STATE_PATH)
+        voice_session = _load_session()
 
         if not voice_session.session_id:
             voice_session.session_id = self.session_id
-            save_voice_session(voice_session, VOICE_STATE_PATH)
+            _save_session(voice_session)
 
         # If already complete, return completion state
         if voice_session.is_complete:
@@ -262,7 +273,7 @@ class VoiceConversationService:
         Returns a VoiceConversationResponse the FastAPI route serialises
         and returns to the frontend.
         """
-        voice_session = load_voice_session(VOICE_STATE_PATH)
+        voice_session = _load_session()
         input_mode    = voice_session.input_mode
 
         # ── Step 1: Transcribe audio or use text directly ──────────
@@ -272,7 +283,7 @@ class VoiceConversationService:
                 # Fall back to text mode gracefully
                 input_mode = "text"
                 voice_session.input_mode = "text"
-                save_voice_session(voice_session, VOICE_STATE_PATH)
+                _save_session(voice_session)
                 return VoiceConversationResponse(
                     success=False,
                     session_id=self.session_id,
@@ -328,7 +339,7 @@ class VoiceConversationService:
             if block_obj:
                 block_obj.summary_read_back = summary
                 block_obj.confirm(extracted_fields)
-                save_voice_session(voice_session, VOICE_STATE_PATH)
+                _save_session(voice_session)
 
         # ── Step 4: Detect interview completion ───────────────────
         interview_done = _extract_interview_complete(agent_response)
@@ -343,7 +354,7 @@ class VoiceConversationService:
                 founder_response=transcript,
                 input_mode=input_mode,
             )
-            save_voice_session(voice_session, VOICE_STATE_PATH)
+            _save_session(voice_session)
 
         # ── Step 6: Synthesise speech ──────────────────────────────
         spoken_text = _strip_tags(agent_response)
@@ -385,3 +396,12 @@ class VoiceConversationService:
         with open(MESSAGE_DNA_PATH, "w", encoding="utf-8") as f:
             json.dump(dna_dict, f, indent=2)
         print(f"MessageDNA saved to: {MESSAGE_DNA_PATH}")
+
+        # Push to Firestore so MessageDNA survives container restarts
+        if USE_FIRESTORE:
+            try:
+                from tools.firestore_tool import save_document
+                save_document("message_dna", "default_founder", dna_dict)
+                print("MessageDNA saved to Firestore: message_dna/default_founder")
+            except Exception as exc:
+                print(f"[voice] Firestore MessageDNA save failed (local copy OK): {exc}")

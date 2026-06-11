@@ -275,3 +275,20 @@ def load_voice_session(filepath: str) -> VoiceConversationSession:
     with open(filepath, "r", encoding="utf-8") as f:
         data = json.load(f)
     return VoiceConversationSession.from_dict(data)
+
+
+# ── Firestore persistence ───────────────────────────────────────────────
+
+def save_voice_session_firestore(session: VoiceConversationSession, founder_id: str = "default_founder") -> None:
+    """Save VoiceConversationSession to Firestore (collection: voice_session)."""
+    from tools.firestore_tool import save_document
+    save_document("voice_session", founder_id, session.to_dict())
+
+
+def load_voice_session_firestore(founder_id: str = "default_founder") -> VoiceConversationSession | None:
+    """Load VoiceConversationSession from Firestore. Returns None if not found."""
+    from tools.firestore_tool import load_document
+    data = load_document("voice_session", founder_id)
+    if data is None:
+        return None
+    return VoiceConversationSession.from_dict(data)

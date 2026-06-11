@@ -181,3 +181,22 @@ def load_moments(filepath: str) -> MomentSelectionResult:
     result = MomentSelectionResult.from_dict(data)
     print(f"✅ Moments loaded from: {filepath}")
     return result
+
+
+# ── Firestore persistence ───────────────────────────────────────────────
+
+def save_moments_firestore(result: MomentSelectionResult, founder_id: str = "default_founder") -> None:
+    """Save MomentSelectionResult to Firestore (collection: moments)."""
+    from tools.firestore_tool import save_document
+    save_document("moments", founder_id, result.to_dict())
+    print(f"✅ Moments saved to Firestore: moments/{founder_id}")
+
+
+def load_moments_firestore(founder_id: str = "default_founder") -> MomentSelectionResult | None:
+    """Load MomentSelectionResult from Firestore. Returns None if not found."""
+    from tools.firestore_tool import load_document
+    data = load_document("moments", founder_id)
+    if data is None:
+        return None
+    print(f"✅ Moments loaded from Firestore: moments/{founder_id}")
+    return MomentSelectionResult.from_dict(data)

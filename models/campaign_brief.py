@@ -138,3 +138,24 @@ def load_campaign_brief(filepath: str) -> CampaignBrief:
     brief = CampaignBrief(**data)
     print(f"✅ CampaignBrief loaded from: {filepath}")
     return brief
+
+
+# ── Firestore persistence ───────────────────────────────────────────────
+
+def save_campaign_brief_firestore(brief: CampaignBrief, founder_id: str = "default_founder") -> None:
+    """Save CampaignBrief to Firestore (collection: campaign_brief)."""
+    from tools.firestore_tool import save_document
+    save_document("campaign_brief", founder_id, brief.to_dict())
+    print(f"✅ CampaignBrief saved to Firestore: campaign_brief/{founder_id}")
+
+
+def load_campaign_brief_firestore(founder_id: str = "default_founder") -> CampaignBrief | None:
+    """Load CampaignBrief from Firestore. Returns None if not found."""
+    from tools.firestore_tool import load_document
+    data = load_document("campaign_brief", founder_id)
+    if data is None:
+        return None
+    known = {f for f in CampaignBrief.__dataclass_fields__}
+    filtered = {k: v for k, v in data.items() if k in known}
+    print(f"✅ CampaignBrief loaded from Firestore: campaign_brief/{founder_id}")
+    return CampaignBrief(**filtered)

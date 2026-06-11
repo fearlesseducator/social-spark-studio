@@ -103,3 +103,22 @@ def load_transcript_result(filepath: str) -> TranscriptResult:
     result = TranscriptResult.from_dict(data)
     print(f"✅ Transcript loaded from: {filepath}")
     return result
+
+
+# ── Firestore persistence ───────────────────────────────────────────────
+
+def save_transcript_firestore(result: TranscriptResult, founder_id: str = "default_founder") -> None:
+    """Save TranscriptResult to Firestore (collection: transcript)."""
+    from tools.firestore_tool import save_document
+    save_document("transcript", founder_id, result.to_dict())
+    print(f"✅ Transcript saved to Firestore: transcript/{founder_id}")
+
+
+def load_transcript_firestore(founder_id: str = "default_founder") -> TranscriptResult | None:
+    """Load TranscriptResult from Firestore. Returns None if not found."""
+    from tools.firestore_tool import load_document
+    data = load_document("transcript", founder_id)
+    if data is None:
+        return None
+    print(f"✅ Transcript loaded from Firestore: transcript/{founder_id}")
+    return TranscriptResult.from_dict(data)

@@ -131,27 +131,41 @@ def save_message_dna(dna: MessageDNA, filepath: str) -> None:
     print(f"✅ MessageDNA saved to: {filepath}")
 
 
+def message_dna_from_dict(data: dict) -> MessageDNA:
+    """Build a MessageDNA object from a plain dict (file or Firestore)."""
+    dna = MessageDNA()
+    dna.founder_identity    = FounderIdentity(**data.get("founder_identity", {}))
+    dna.audience_profile    = AudienceProfile(**data.get("audience_profile", {}))
+    dna.founder_positioning = FounderPositioning(**data.get("founder_positioning", {}))
+    dna.voice_profile       = VoiceProfile(**data.get("voice_profile", {}))
+    dna.content_direction   = ContentDirection(**data.get("content_direction", {}))
+    return dna
+
+
 def load_message_dna(filepath: str) -> MessageDNA:
     """Load a MessageDNA object from a JSON file."""
     with open(filepath, "r", encoding="utf-8") as f:
         data = json.load(f)
 
-    dna = MessageDNA()
-    # Founder Identity
-    fi_data = data.get("founder_identity", {})
-    dna.founder_identity = FounderIdentity(**fi_data)
-    # Audience Profile
-    ap_data = data.get("audience_profile", {})
-    dna.audience_profile = AudienceProfile(**ap_data)
-    # Founder Positioning
-    fp_data = data.get("founder_positioning", {})
-    dna.founder_positioning = FounderPositioning(**fp_data)
-    # Voice Profile
-    vp_data = data.get("voice_profile", {})
-    dna.voice_profile = VoiceProfile(**vp_data)
-    # Content Direction
-    cd_data = data.get("content_direction", {})
-    dna.content_direction = ContentDirection(**cd_data)
-
+    dna = message_dna_from_dict(data)
     print(f"✅ MessageDNA loaded from: {filepath}")
     return dna
+
+
+# ── Firestore persistence ───────────────────────────────────────────────
+
+def save_message_dna_firestore(dna: MessageDNA, founder_id: str = "default_founder") -> None:
+    """Save MessageDNA to Firestore (collection: message_dna)."""
+    from tools.firestore_tool import save_document
+    save_document("message_dna", founder_id, dna.to_dict())
+    print(f"✅ MessageDNA saved to Firestore: message_dna/{founder_id}")
+
+
+def load_message_dna_firestore(founder_id: str = "default_founder") -> MessageDNA | None:
+    """Load MessageDNA from Firestore. Returns None if not found."""
+    from tools.firestore_tool import load_document
+    data = load_document("message_dna", founder_id)
+    if data is None:
+        return None
+    print(f"✅ MessageDNA loaded from Firestore: message_dna/{founder_id}")
+    return message_dna_from_dict(data)

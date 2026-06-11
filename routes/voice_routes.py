@@ -35,7 +35,11 @@ from typing import Optional
 import uuid
 
 from services.voice_conversation_service import VoiceConversationService
-from models.voice_conversation import load_voice_session
+from models.voice_conversation import VoiceConversationSession
+from services.storage_service import (
+    storage_load_voice_session,
+    storage_reset_session,
+)
 from tools.speech_to_text_tool import stt_is_configured
 from tools.text_to_speech_tool import tts_is_configured
 
@@ -178,7 +182,7 @@ async def get_session_state(session_id: str):
         current_block_name  str
         blocks              list — each block's confirmation status
     """
-    voice_session = load_voice_session("data/voice_conversation_state.json")
+    voice_session = storage_load_voice_session() or VoiceConversationSession()
 
     blocks_summary = [
         {
@@ -200,6 +204,21 @@ async def get_session_state(session_id: str):
         "current_block":     current.block_number if current else 0,
         "current_block_name": current.block_name if current else "",
         "blocks":            blocks_summary,
+    })
+
+
+@router.post("/reset")
+async def reset_session():
+    """
+    Reset the founder's session — deletes all stored documents
+    (Firestore mode) and local data files, plus in-memory services.
+    The next /start begins a fresh interview.
+    """
+    storage_reset_session()
+    _sessions.clear()
+    return JSONResponse(content={
+        "success": True,
+        "message": "Session reset. All stored interview and campaign data deleted.",
     })
 
 

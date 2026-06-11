@@ -85,8 +85,24 @@ def _fail_job(jid: str, error: str) -> None:
 # ── Prerequisite helpers ───────────────────────────────────────────────
 # These raise HTTPException (not sys.exit) so FastAPI handles them cleanly.
 
+def _hydrate_if_missing(path: Path) -> None:
+    """
+    When USE_FIRESTORE is on and a local data file is missing (fresh
+    Cloud Run container), pull it down from Firestore so the path-based
+    pipeline helpers can read it. No-op in local file mode.
+    """
+    if path.exists():
+        return
+    try:
+        from services.storage_service import hydrate_local_file
+        hydrate_local_file(path.name)
+    except Exception as exc:
+        print(f"[pipeline] hydration skipped for {path.name}: {exc}")
+
+
 def _require_file(path: Path, hint: str) -> None:
-    """Raise 422 if a required data file is missing."""
+    """Raise 422 if a required data file is missing (after trying Firestore)."""
+    _hydrate_if_missing(path)
     if not path.exists():
         raise HTTPException(status_code=422, detail=hint)
 
@@ -99,6 +115,9 @@ def _dna_path() -> Path:
     test = DATA_DIR / "test_message_dna_output.json"
     if test.exists():
         return test
+    _hydrate_if_missing(real)
+    if real.exists():
+        return real
     raise HTTPException(
         status_code=422,
         detail="MessageDNA not found. Complete the Voice Interview first."
@@ -206,7 +225,7 @@ async def run_transcript_route(request: TranscriptRequest):
         raise HTTPException(status_code=422, detail="youtube_url is required.")
 
     from tools.youtube_fetcher import fetch_transcript
-    from models.transcript_result import save_transcript_result
+    from services.storage_service import storage_save_transcript, storage_save_campaign_brief
 
     result = fetch_transcript(url, min_total_words=MIN_WORDS)
 
@@ -220,14 +239,14 @@ async def run_transcript_route(request: TranscriptRequest):
             },
         )
 
-    output_path = DATA_DIR / "transcript_output.json"
-    save_transcript_result(result, str(output_path))
+    storage_save_transcript(result)
 
-    # Write the confirmed youtube_url back into campaign_brief.json
+    # Write the confirmed youtube_url back into the campaign brief
     try:
-        brief = json.loads(brief_path.read_text(encoding="utf-8"))
-        brief["youtube_url"] = url
-        brief_path.write_text(json.dumps(brief, indent=2), encoding="utf-8")
+        from models.campaign_brief import load_campaign_brief
+        brief_obj = load_campaign_brief(str(brief_path))
+        brief_obj.youtube_url = url
+        storage_save_campaign_brief(brief_obj)
     except Exception:
         pass  # Non-fatal — transcript was saved, brief update is cosmetic
 
@@ -264,10 +283,12 @@ async def run_export_route():
 
     # Import only the pure helper functions — never main() or check_prerequisites()
     from run_export import build_row, build_output_path, CSV_COLUMNS
-    from models.post_draft import load_post_draft_set
+    from services.storage_service import storage_load_post_drafts
 
-    draft_set = load_post_draft_set(str(posts_path))
-    posts     = draft_set.posts
+    draft_set = storage_load_post_drafts()
+    if draft_set is None:
+        raise HTTPException(status_code=422, detail="No post drafts found. Run the captions phase first.")
+    posts = draft_set.posts
 
     if not posts:
         raise HTTPException(status_code=422, detail="No posts found in posts_output.json.")
@@ -353,7 +374,7 @@ def _bg_moments(job_id: str, dna_path: str, brief_path: str,
         )
         from agents.moment_selector_agent import create_moment_selector_agent
         from models.transcript_result import load_transcript_result
-        from models.transcript_moment import save_moments
+        from services.storage_service import storage_save_moments
 
         context, video_id, video_url = build_agent_context(
             dna_path, brief_path, transcript_path
@@ -377,7 +398,7 @@ def _bg_moments(job_id: str, dna_path: str, brief_path: str,
             _fail_job(job_id, f"Agent returned 0 moments. Notes: {notes}")
             return
 
-        save_moments(result, output_path)
+        storage_save_moments(result)
 
         _finish_job(job_id, {
             "total_moments":    result.total_moments,
@@ -458,7 +479,7 @@ def _bg_captions(job_id: str, dna_path: str, brief_path: str,
         )
         from agents.caption_agent  import create_caption_agent
         from agents.hashtag_agent  import create_hashtag_agent
-        from models.post_draft     import save_post_drafts
+        from services.storage_service import storage_save_post_drafts
 
         # Step 1: Build context
         if batch:
@@ -518,7 +539,7 @@ def _bg_captions(job_id: str, dna_path: str, brief_path: str,
             except Exception:
                 pass  # Fall back to overwriting
 
-        save_post_drafts(draft_set, output_path)
+        storage_save_post_drafts(draft_set)
 
         _posts = draft_set.posts if hasattr(draft_set, "posts") and draft_set.posts else []
         _finish_job(job_id, {
@@ -611,6 +632,7 @@ def _bg_images(job_id: str, posts_path: str, images_dir: str,
     try:
         from run_images import run_images
         from models.post_draft import load_post_draft_set
+        from services.storage_service import storage_save_post_drafts, USE_FIRESTORE
 
         run_images(
             posts_path  = posts_path,
@@ -623,6 +645,11 @@ def _bg_images(job_id: str, posts_path: str, images_dir: str,
         # Read the updated posts file to build a useful result summary
         draft_set = load_post_draft_set(posts_path)
         posts     = draft_set.posts
+
+        # run_images writes the local file directly — push the updated
+        # asset statuses to Firestore so they survive container restarts
+        if USE_FIRESTORE:
+            storage_save_post_drafts(draft_set)
 
         if target_post is not None:
             scope = [p for p in posts if p.post_number == target_post]

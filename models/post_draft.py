@@ -278,3 +278,23 @@ def load_post_draft_set(filepath: str) -> PostDraftSet:
     result = PostDraftSet.from_dict(data)
     print(f"✅ Posts loaded from: {filepath} ({len(result.posts)} posts)")
     return result
+
+
+# ── Firestore persistence ───────────────────────────────────────────────
+
+def save_post_draft_set_firestore(draft_set: PostDraftSet, founder_id: str = "default_founder") -> None:
+    """Save PostDraftSet to Firestore (collection: post_drafts)."""
+    from tools.firestore_tool import save_document
+    save_document("post_drafts", founder_id, draft_set.to_dict())
+    print(f"✅ Posts saved to Firestore: post_drafts/{founder_id}")
+
+
+def load_post_draft_set_firestore(founder_id: str = "default_founder") -> PostDraftSet | None:
+    """Load PostDraftSet from Firestore. Returns None if not found."""
+    from tools.firestore_tool import load_document
+    data = load_document("post_drafts", founder_id)
+    if data is None:
+        return None
+    result = PostDraftSet.from_dict(data)
+    print(f"✅ Posts loaded from Firestore: post_drafts/{founder_id} ({len(result.posts)} posts)")
+    return result
