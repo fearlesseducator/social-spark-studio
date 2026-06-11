@@ -2,7 +2,7 @@
 
 Social Spark Studio is a **multi-agent workflow built on the Google Agent
 Development Kit (ADK)**. Eight specialised Gemini agents, coordinated by a
-FastAPI web layer, turn one YouTube video into a complete, scheduler-ready
+FastAPI web layer, turn one founder video into a complete, scheduler-ready
 social media campaign — in the founder's authentic voice.
 
 The architectural rule that shapes everything: **message before media.**
@@ -22,8 +22,8 @@ sentinel tags) that the next step parses.
 |---|-------|------|-------|------|
 | 1 | **MessageDNA Agent** | `agents/message_dna_agent.py` | gemini-2.5-flash | Conducts the 4-block founder interview (audience, offer, voice, positioning) and extracts the structured MessageDNA profile |
 | 2 | **Voice Conversation Agent** | `agents/voice_conversation_agent.py` | gemini-2.5-flash | Drives the spoken version of the MessageDNA interview — one question at a time, block summaries, explicit confirmation gates |
-| 3 | **Campaign Brief Agent** | `agents/campaign_brief_agent.py` | gemini-2.5-flash | Interviews the founder about one specific campaign: goal, offer, CTA, platforms, and the YouTube source video |
-| 4 | **Transcript Agent** | `agents/transcript_agent.py` | gemini-2.5-flash | Cleans and structures the raw YouTube caption track into timestamped segments |
+| 3 | **Campaign Brief Agent** | `agents/campaign_brief_agent.py` | gemini-2.5-flash | Interviews the founder about one specific campaign: goal, offer, CTA, platforms, and the source video |
+| 4 | **Transcript Agent** | `agents/transcript_agent.py` | gemini-2.5-flash | Cleans and structures raw transcript text into timestamped segments |
 | 5 | **Moment Selector Agent** | `agents/moment_selector_agent.py` | gemini-2.5-flash | Scores every transcript segment against MessageDNA + brief and selects up to 9 high-signal, quotable moments |
 | 6 | **Caption Agent** | `agents/caption_agent.py` | gemini-2.5-flash | Drafts up to 15 posts across three content types (video_clip, image_post, text_quote) in the founder's confirmed voice |
 | 7 | **Hashtag Agent** | `agents/hashtag_agent.py` | gemini-2.5-flash | Second-pass agent that assigns 3-tier hashtag sets (broad / niche / brand) to every post |
@@ -38,7 +38,7 @@ service layer:
 |------|------|---------|
 | **Speech-to-Text** | `tools/speech_to_text_tool.py` | Google Cloud Speech-to-Text v2 (Chirp 3) — transcribes the founder's spoken interview answers |
 | **Text-to-Speech** | `tools/text_to_speech_tool.py` | Google Cloud Text-to-Speech (Chirp 3 HD) — speaks the agent's questions aloud in the browser |
-| **YouTube transcript fetch** | `run_transcript.py` | youtube-transcript-api — pulls the timestamped caption track for any public video |
+| **Video transcription** | `tools/speech_to_text_tool.py` + `routes/pipeline_routes.py` | Uploaded founder MP4 → Cloud Storage → ffmpeg audio extraction → Chirp 3 batch transcription into timestamped segments (RSS audio + manual paste as backup paths) |
 | **Imagen generation** | `run_images.py` | Google Imagen 4.0 via Vertex AI — generates on-brand visuals, with automatic fallback to `imagen-4.0-fast-generate-001` on safety blocks |
 
 Both speech tools degrade gracefully: if the package or API is unavailable,
@@ -61,9 +61,10 @@ the Voice Studio falls back to text input and the interview continues.
                     └──────────────┬──────────────┘
                                    ▼
                     data/campaign_brief.json       ← per-campaign
-                                   │  (includes YouTube URL)
+                                   │  (includes source video)
                                    ▼
-                    youtube-transcript-api fetch
+                    Founder MP4 upload → GCS → ffmpeg
+                    audio extraction → Chirp 3 STT
                                    ▼
                     data/transcript_output.json
                                    │
@@ -100,7 +101,7 @@ The FastAPI app (`app.py`) exposes the pipeline through
 
 | UI page | Button | Route | Execution |
 |---------|--------|-------|-----------|
-| `/youtube` | Generate Transcript | `POST /api/run/transcript` | synchronous (~5 s) |
+| `/youtube` | Upload &amp; Transcribe (founder video) | `POST /api/upload/video/sign` + `POST /api/run/transcript/video` | background job (~2-8 min) |
 | `/moments` | Generate Moments | `POST /api/run/moments` | background job (~30–90 s) |
 | `/posts` | Generate Post Drafts | `POST /api/run/captions` | background job (~60–120 s, two agents) |
 | `/posts` | Generate All Images | `POST /api/run/images` | background job (~20 s/image) |

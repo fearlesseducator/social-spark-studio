@@ -1,8 +1,8 @@
 # Social Spark Studio
-### A multi-agent Google ADK workflow — one YouTube video in, a full campaign out
+### A multi-agent Google ADK workflow — one founder video in, a full campaign out
 **Built with Python + FastAPI + Google ADK · Gemini 2.5 Flash · Imagen 4.0 · Chirp 3 voice**
 
-Social Spark Studio turns one YouTube video into a ready-to-schedule
+Social Spark Studio turns one founder video into a ready-to-schedule
 social media campaign — in the founder's real voice, not generic AI voice.
 
 **Eight specialised ADK agents** work in sequence across seven phases:
@@ -10,8 +10,8 @@ social media campaign — in the founder's real voice, not generic AI voice.
 | Phase | What happens | Powered by |
 |-------|-------------|------------|
 | 1. MessageDNA | Spoken/typed founder interview captures voice, audience, positioning | Voice Conversation Agent + STT/TTS (Chirp 3) |
-| 2. Campaign Brief | Goal, offer, CTA, and YouTube source for one campaign | Campaign Brief Agent |
-| 3. Transcript | Timestamped transcript pulled from the YouTube video | youtube-transcript-api |
+| 2. Campaign Brief | Goal, offer, CTA, and source video for one campaign | Campaign Brief Agent |
+| 3. Video Transcript | Upload a 5–20 min founder MP4 — audio extracted and transcribed | Cloud Storage + ffmpeg + Chirp 3 STT |
 | 4. Moments | Highest-signal quotes selected and scored | Moment Selector Agent |
 | 5. Post Drafts | Up to 15 posts in the founder's confirmed voice + 3-tier hashtags | Caption Agent → Hashtag Agent |
 | 6. Images | On-brand visuals for every image post | Image Prompt Agent → Imagen 4.0 |

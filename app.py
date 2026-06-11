@@ -182,11 +182,11 @@ def _compute_workflow_steps(posts_data=None):
         },
         {
             "key":    "transcript",
-            "label":  "YouTube Transcript",
-            "icon":   "youtube",
+            "label":  "Video Transcript",
+            "icon":   "video",
             "status": "complete" if transcript_ok else "todo",
             "href":   "/youtube",
-            "desc":   "Extracted from your YouTube source.",
+            "desc":   "Transcribed from your uploaded founder video.",
         },
         {
             "key":    "moments",

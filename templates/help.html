@@ -10,7 +10,7 @@
     </span>
     <h1 class="mt-3 text-3xl font-bold text-foreground sm:text-4xl">How Social Spark Studio Works</h1>
     <p class="mt-2 max-w-2xl text-muted-foreground">
-      A seven-phase pipeline that turns one YouTube video into a full, voice-aligned social media campaign —
+      A seven-phase pipeline that turns one founder video into a full, voice-aligned social media campaign —
       end to end, without copy-paste or prompt writing.
     </p>
   </header>
@@ -21,8 +21,8 @@
     <ol class="relative border-l border-border space-y-0">
       {% set phases = [
         ("dna",        "1", "MessageDNA",          "mic",         "Capture your authentic founder voice through a guided AI interview."),
-        ("brief",      "2", "Campaign Brief",       "clipboard-list","Define campaign goal, offer, CTA, and YouTube source URL."),
-        ("transcript", "3", "YouTube Transcript",   "youtube",     "Extract a timestamped, segment-by-segment transcript from any YouTube video."),
+        ("brief",      "2", "Campaign Brief",       "clipboard-list","Define campaign goal, offer, CTA, and your source video."),
+        ("transcript", "3", "Video Transcript",     "video",       "Upload your founder video — it is transcribed into timestamped segments."),
         ("moments",    "4", "Moment Selection",     "sparkles",    "An AI agent scores every segment and selects the highest-signal quotes and clips."),
         ("drafts",     "5", "Post Drafts",          "file-text",   "Caption and hashtag agents draft up to 15 posts across three content types."),
         ("images",     "6", "Image Generation",     "image",       "Google Imagen generates on-brand visuals for every image post, automatically."),
@@ -90,36 +90,38 @@
     </div>
     <p class="text-sm text-muted-foreground leading-relaxed">
       The Campaign Brief scopes a single campaign: what you're promoting, who it's for, what the CTA is,
-      and which YouTube video to draw content from. A Gemini-powered brief agent interviews you through
+      and which founder video to draw content from. A Gemini-powered brief agent interviews you through
       five structured questions and writes the brief for you.
     </p>
     <div class="rounded-xl border border-border bg-secondary px-4 py-3 text-xs text-muted-foreground space-y-1">
-      <p><span class="font-semibold text-foreground">Input:</span> Campaign goal, offer, audience, CTA, YouTube URL</p>
+      <p><span class="font-semibold text-foreground">Input:</span> Campaign goal, offer, audience, CTA, source video</p>
       <p><span class="font-semibold text-foreground">Output:</span> <code class="text-accent-foreground">data/campaign_brief.json</code></p>
       <p><span class="font-semibold text-foreground">Tech:</span> Google ADK · Gemini 2.5 Flash</p>
     </div>
   </section>
 
-  <!-- 3. YouTube Transcript -->
+  <!-- 3. Video Transcript -->
   <section class="card p-6 space-y-4">
     <div class="flex items-center gap-3">
       <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-primary-soft text-accent-foreground">
-        <i data-lucide="youtube" class="h-5 w-5"></i>
+        <i data-lucide="video" class="h-5 w-5"></i>
       </div>
       <div>
-        <h2 class="text-lg font-semibold text-foreground">Phase 3 — YouTube Transcript</h2>
-        <p class="text-xs text-muted-foreground">Any public YouTube video, any length.</p>
+        <h2 class="text-lg font-semibold text-foreground">Phase 3 — Video Transcript</h2>
+        <p class="text-xs text-muted-foreground">Upload a 5–20 minute founder video.</p>
       </div>
     </div>
     <p class="text-sm text-muted-foreground leading-relaxed">
-      Paste a YouTube URL and the transcript runner fetches the full caption track, segments it into
-      timestamped chunks, and saves a structured JSON file. Each segment records the text, start time,
-      and word count so downstream agents can generate precise timestamp URLs back to the source video.
+      Upload your founder MP4 — it goes straight to Cloud Storage, the audio track is extracted,
+      and Google Speech-to-Text (Chirp 3) transcribes it into timestamped 40–120-word segments.
+      Each segment records the text, start/end time, and word count so downstream agents can
+      reference precise moments in the source video. RSS audio episodes and manual transcript
+      paste are available as backup paths.
     </p>
     <div class="rounded-xl border border-border bg-secondary px-4 py-3 text-xs text-muted-foreground space-y-1">
-      <p><span class="font-semibold text-foreground">Input:</span> YouTube URL (from Campaign Brief)</p>
+      <p><span class="font-semibold text-foreground">Input:</span> Uploaded founder MP4 (or RSS audio / pasted transcript)</p>
       <p><span class="font-semibold text-foreground">Output:</span> <code class="text-accent-foreground">data/transcript_output.json</code></p>
-      <p><span class="font-semibold text-foreground">Tech:</span> youtube-transcript-api · FastAPI background task</p>
+      <p><span class="font-semibold text-foreground">Tech:</span> Cloud Storage · ffmpeg · Speech-to-Text Chirp 3 · FastAPI background task</p>
     </div>
   </section>
 
@@ -140,7 +142,7 @@
       strong hook? It selects up to 9 high-signal moments and explains why each one works.
     </p>
     <p class="text-sm text-muted-foreground leading-relaxed">
-      Each moment includes a verbatim quote, a YouTube timestamp URL, a platform recommendation,
+      Each moment includes a verbatim quote, a source-video timestamp, a platform recommendation,
       and a note on why it resonates — the raw material the caption agent works from in Phase 5.
     </p>
     <div class="rounded-xl border border-border bg-secondary px-4 py-3 text-xs text-muted-foreground space-y-1">
@@ -221,7 +223,7 @@
     </div>
     <p class="text-sm text-muted-foreground leading-relaxed">
       The export runner writes every post to a single CSV file with columns matching the import format
-      for Buffer, Hypefury, and SparkCircle. Video clip posts include a YouTube timestamp URL as the
+      for Buffer, Hypefury, and SparkCircle. Video clip posts keep their source timestamps internally as the
       media asset. Image posts reference the generated image path. Text quote posts export clean.
     </p>
     <div class="rounded-xl border border-border bg-secondary px-4 py-3 text-xs text-muted-foreground space-y-1">
@@ -259,7 +261,7 @@
         <tbody class="divide-y divide-border">
           {% set agents = [
             ("Interview Agent",  "Conducts the structured MessageDNA voice interview across 4 blocks", "Gemini 2.5 Flash"),
-            ("Brief Agent",      "Extracts campaign goal, offer, audience, CTA, and YouTube URL",     "Gemini 2.5 Flash"),
+            ("Brief Agent",      "Extracts campaign goal, offer, audience, CTA, and source video",   "Gemini 2.5 Flash"),
             ("Moments Agent",    "Scores transcript segments and selects the highest-signal moments",  "Gemini 2.5 Flash"),
             ("Caption Agent",    "Drafts up to 15 posts in the founder's confirmed voice",            "Gemini 2.5 Flash"),
             ("Hashtag Agent",    "Assigns 3-tier hashtag sets to every post",                         "Gemini 2.5 Flash Lite"),
@@ -295,7 +297,7 @@
           "Vertex AI",
           "FastAPI",
           "Python 3.14",
-          "youtube-transcript-api",
+          "ffmpeg",
         ] %}
         <span class="inline-flex items-center rounded-full border border-border bg-secondary px-3 py-1 text-xs font-medium text-foreground">
           {{ chip }}
