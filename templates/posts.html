@@ -128,8 +128,13 @@
       {% endif %}
       {% if post.youtube_timestamp_url %}
       <a href="{{ post.youtube_timestamp_url }}" target="_blank" rel="noopener" class="mt-2 inline-flex items-center gap-1 text-xs text-accent-foreground hover:underline">
-        <i data-lucide="external-link" class="h-3 w-3"></i> Watch moment
+        <i data-lucide="clock" class="h-3 w-3"></i> Source Timestamp
       </a>
+      {% endif %}
+      {% if post.content_type == 'video_clip' %}
+      <p class="mt-2 text-xs text-muted-foreground italic">
+        Clip timestamp identified. MP4 clip export is a future enhancement.
+      </p>
       {% endif %}
 
       <!-- Image — served from /api/data/images/{filename} -->

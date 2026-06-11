@@ -66,7 +66,7 @@
       <div class="mt-3 flex flex-wrap gap-3">
         {% if moment.clip_url %}
         <a href="{{ moment.clip_url }}" target="_blank" rel="noopener" class="inline-flex items-center gap-1 text-xs text-accent-foreground hover:underline">
-          <i data-lucide="external-link" class="h-3 w-3"></i> Watch clip ({{ moment.start_timestamp }}s)
+          <i data-lucide="clock" class="h-3 w-3"></i> Source Timestamp ({{ moment.start_timestamp }})
         </a>
         {% endif %}
         {% if moment.platform_recommendation %}
