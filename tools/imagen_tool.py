@@ -170,6 +170,32 @@ def generate_image(
         )
 
 
+def upload_image_to_gcs(local_path: str, dest_name: str = "") -> str:
+    """
+    Upload a generated PNG to the GCS_BUCKET_NAME bucket and return its
+    public https:// URL. Returns "" on any failure (caller keeps the
+    local path as fallback — upload failure never breaks the pipeline).
+
+    Objects land under generated_images/ and are served via
+    https://storage.googleapis.com/{bucket}/generated_images/{name}.
+    """
+    bucket_name = os.getenv("GCS_BUCKET_NAME", "")
+    project     = os.getenv("GOOGLE_CLOUD_PROJECT", "")
+    if not bucket_name or not project:
+        return ""
+    try:
+        from google.cloud import storage as gcs_storage
+        client = gcs_storage.Client(project=project)
+        bucket = client.bucket(bucket_name)
+        name   = dest_name or Path(local_path).name
+        blob   = bucket.blob(f"generated_images/{name}")
+        blob.upload_from_filename(local_path, content_type="image/png")
+        return f"https://storage.googleapis.com/{bucket_name}/generated_images/{name}"
+    except Exception as e:
+        print(f"[imagen] GCS upload failed for {local_path}: {e}")
+        return ""
+
+
 def build_image_output_path(campaign_id: str, post_index: int, images_dir: str) -> str:
     """
     Build the local file path for a generated image.

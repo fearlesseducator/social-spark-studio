@@ -110,6 +110,13 @@ def _load_json(filename: str):
     """
     path = DATA_DIR / filename
     if not path.exists():
+        # Fresh container — try pulling the file down from Firestore
+        try:
+            from services.storage_service import hydrate_local_file
+            hydrate_local_file(filename)
+        except Exception:
+            pass
+    if not path.exists():
         # Fallback: test_ prefix variant (used by CLI runners during dev)
         alt = DATA_DIR / ("test_" + filename)
         if alt.exists():

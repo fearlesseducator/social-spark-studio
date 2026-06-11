@@ -798,10 +798,23 @@ def _bg_images(job_id: str, posts_path: str, images_dir: str,
         draft_set = load_post_draft_set(posts_path)
         posts     = draft_set.posts
 
-        # run_images writes the local file directly — push the updated
-        # asset statuses to Firestore so they survive container restarts
-        if USE_FIRESTORE:
-            storage_save_post_drafts(draft_set)
+        # Upload freshly generated images to Cloud Storage so image_url
+        # is a usable hosted URL (not an ephemeral local path). Upload
+        # failure keeps the local path — never fails the job.
+        from tools.imagen_tool import upload_image_to_gcs
+        uploaded = 0
+        for p in posts:
+            if (p.asset_status == "image_generated"
+                    and p.image_url
+                    and not p.image_url.startswith("http")):
+                gcs_url = upload_image_to_gcs(p.image_url)
+                if gcs_url:
+                    p.image_url = gcs_url
+                    p.image_storage_status = "cloud_storage"
+                    uploaded += 1
+
+        # Persist updated URLs/statuses (local file + Firestore)
+        storage_save_post_drafts(draft_set)
 
         if target_post is not None:
             scope = [p for p in posts if p.post_number == target_post]
@@ -816,6 +829,7 @@ def _bg_images(job_id: str, posts_path: str, images_dir: str,
             "failed":          failed,
             "generated_count": len(generated),
             "failed_count":    len(failed),
+            "uploaded_to_gcs": uploaded,
             "target_post":     target_post,
             "model":           model,
             "images_dir":      images_dir,
